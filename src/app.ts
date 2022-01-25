@@ -1,9 +1,11 @@
-import express from "express";
-
+import express, { Application, Request, Response } from "express";
+import router from "./route";
 const app = express();
 
-app.get('/', (req, res, next) => {
-    res.send('Hello world');
+app.use('/', router);
+
+app.use((err: any, req: Request, res: Response) => {
+    res.locals.message = err.message;
 });
 
 app.listen(5000, () => {
