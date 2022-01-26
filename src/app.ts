@@ -32,7 +32,24 @@ passport.use(new LocalStrategy(
     }
 ));
 
-const app : Application = express();
+// passport jwt setup to get user from token
+passport.use(new JWTStrategy(
+    {
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+        secretOrKey: process.env.S_KEY,
+    },
+    (jwtPayload: any, cb: Function) => {
+        User.findById(jwtPayload.user._id, (err: any, theUser: UserType) => {
+            if (err)
+                return cb(err);
+            if (!theUser)
+                return cb(new Error('Please sign up or login'));
+            cb(null, theUser);
+        });
+    }
+));
+
+const app: Application = express();
 
 const mongoDB = `mongodb+srv://admin:${process.env.DB_PASSWORD}@cluster0.yag2o.mongodb.net/anonDB?retryWrites=true&w=majority`
 connect(mongoDB);

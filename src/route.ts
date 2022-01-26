@@ -8,5 +8,6 @@ router.get('/', (req: Request, res: Response, next: NextFunction) => {
 
 // User api calls
 router.post('/user/create', userController.user_create);
+router.post('/user/log_in', userController.log_in);
 
 export default router;

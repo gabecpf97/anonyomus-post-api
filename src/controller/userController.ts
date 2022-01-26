@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import { hash } from "bcrypt";
-import { authenticate } from "passport";
+import passport, { authenticate } from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
 
@@ -57,7 +57,7 @@ exports.user_create = [
                     const token = sign({user}, process.env.S_KEY || "");
                     res.send({ 
                         token, 
-                        user : {
+                        theUser : {
                             username: user.username, 
                             date_join: user.date_join
                         } 
@@ -73,7 +73,7 @@ exports.user_create = [
  * return token and basic user info if success
  */
 exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
-    authenticate('local', {session: false}, (err: any, user: UserType, info: any) => {
+    passport.authenticate('local', {session: false}, (err: any, user: UserType, info: any) => {
         if (err || !user) {
             return next(new Error(info.message));
         }
@@ -83,11 +83,11 @@ exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
             const token = sign({ user }, process.env.S_KEY || '');
             res.send({ 
                 token, 
-                user : {
+                theUser : {
                     username: user.username, 
                     date_join: user.date_join
                 } 
             });
-});
-    })
+        });
+    })(req, res, next);
 }
