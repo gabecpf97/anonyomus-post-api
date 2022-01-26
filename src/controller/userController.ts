@@ -4,6 +4,7 @@ import { compare, hash } from "bcrypt";
 import passport, { authenticate } from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
+import { CallbackError } from "mongoose";
 
 /**
  * api call that get the current user's info
@@ -11,7 +12,7 @@ import User, { UserType } from "../models/User";
  */
 exports.get_user = (req: Request, res: Response, next: NextFunction) => {
     User.findById((req.user as any)._id, 'username email date_join posts comments liked_post liked_comment')
-    .exec((err: any, theUser: UserType) => {
+    .exec((err: CallbackError, theUser: UserType) => {
         if (err)
             return next(err);
         res.send({theUser});
@@ -26,7 +27,7 @@ exports.user_create = [
     body('username', "Username must be longer than 4 letter").trim().isLength({min: 4}).escape(),
     check('username').custom(async (value: string) => {
         return new Promise((resolve, reject) => {
-            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+            User.findOne({username: value}).exec((err: CallbackError, theUser: UserType) => {
                 if (!theUser)
                     return resolve(true);
                 else 
@@ -37,7 +38,7 @@ exports.user_create = [
     body('email', "Please enter a valid email address").normalizeEmail().isEmail().escape(),
     check('email').custom(async (value: string) => {
         return new Promise((resolve, reject) => {
-            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+            User.findOne({username: value}).exec((err: CallbackError, theUser: UserType) => {
                 if (!theUser)
                     return resolve(true);
                 else 
@@ -55,7 +56,7 @@ exports.user_create = [
         if (!errors.isEmpty()) {
             next(errors.array());
         } else {
-            hash(req.body.password, 10, (err: any, hashedPassword: string) => {
+            hash(req.body.password, 10, (err: Error | undefined, hashedPassword: string) => {
                 if (err)
                     return next(err);
                 const user: UserType = new User({
@@ -64,7 +65,7 @@ exports.user_create = [
                     password: hashedPassword,
                     date_join: new Date,
                 });
-                user.save((err: any) => {
+                user.save((err: CallbackError) => {
                     if (err)
                         return next(err);
                     const token = sign({user}, process.env.S_KEY || "");
@@ -86,11 +87,11 @@ exports.user_create = [
  * return token and basic user info if success
  */
 exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
-    passport.authenticate('local', {session: false}, (err: any, user: UserType, info: any) => {
+    passport.authenticate('local', {session: false}, (err: CallbackError, user: UserType, info: any) => {
         if (err || !user) {
             return next(new Error(info.message));
         }
-        req.login(user, {session: false}, (err: any) => {
+        req.login(user, {session: false}, (err: CallbackError) => {
             if (err)
                 return next(err);
             const token = sign({ user }, process.env.S_KEY || '');
@@ -113,7 +114,7 @@ exports.edit_info = [
     body('username', "Username must be longer than 4 letter").trim().isLength({min: 4}).escape(),
     check('username').custom(async (value: string, { req }) => {
         return new Promise((resolve, reject) => {
-            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+            User.findOne({username: value}).exec((err: CallbackError, theUser: UserType) => {
                 if (!theUser || theUser._id.equals(req.user._id))
                     return resolve(true);
                 else 
@@ -124,7 +125,7 @@ exports.edit_info = [
     body('email', "Please enter a valid email address").normalizeEmail().isEmail().escape(),
     check('email').custom(async (value: string, { req }) => {
         return new Promise((resolve, reject) => {
-            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+            User.findOne({username: value}).exec((err: CallbackError, theUser: UserType) => {
                 if (!theUser || theUser._id.equals(req.user._id))
                     return resolve(true);
                 else 
@@ -137,14 +138,14 @@ exports.edit_info = [
         if (!errors.isEmpty()) {
             next(errors.array());
         } else {
-            User.findById((req.user as any)._id).exec((err: any, theUser: UserType) => {
+            User.findById((req.user as any)._id).exec((err: CallbackError, theUser: UserType) => {
                 if (err)
                     return next(err);
                 const newUser = {
                     username: req.body.username,
                     email: req.body.email,
                 };
-                User.findByIdAndUpdate((req.user as any)._id, newUser, {}, (err: any, updated : UserType) => {
+                User.findByIdAndUpdate((req.user as any)._id, newUser, {}, (err: CallbackError, updated : UserType) => {
                     if (err)
                         return next(err);
                     res.send({success: true, username: newUser.username});
@@ -162,9 +163,9 @@ exports.change_password = [
     body('password', "Password is empty").trim().isLength({min: 1}).escape(),
     check('password').custom((value: string, { req }) => {
         return new Promise((resolve, reject) => {
-            User.findById((req.user as any)._id).exec((err: any, theUser: UserType) => {
+            User.findById((req.user as any)._id).exec((err: CallbackError, theUser: UserType) => {
                 if (theUser) {
-                    compare(value, theUser.password, (err: any, result: boolean) => {
+                    compare(value, theUser.password, (err: Error | undefined, result: boolean) => {
                         if (result)
                             return resolve(true);
                         else
@@ -186,11 +187,11 @@ exports.change_password = [
         if (!errors.isEmpty()) {
             next(errors.array());
         } else {
-            hash(req.body.new_password, 10, (err: any, hashedPassword: string) => {
+            hash(req.body.new_password, 10, (err: Error | undefined, hashedPassword: string) => {
                 if (err)
                     return next(err);
                 User.findByIdAndUpdate((req.user as any)._id, {password : hashedPassword},
-                    {}, (err: any, updated: UserType) => {
+                    {}, (err: CallbackError, updated: UserType) => {
                         if (err)
                             return next(err);
                         res.send({success: true});

@@ -1,6 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import router from "./route";
-import { connect, connection } from "mongoose";
+import { CallbackError, connect, connection } from "mongoose";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local"; 
 import { Strategy as JWTStrategy, ExtractJwt } from "passport-jwt";
@@ -16,12 +16,12 @@ passport.use(new LocalStrategy(
         passwordField: 'password',
     },
     (email: string, password: string, done: Function) => {
-        User.findOne({ email }, (err: any, theUser: UserType) => {
+        User.findOne({ email }, (err: CallbackError, theUser: UserType) => {
             if (err)
                 return done(err);
             if (!theUser)
                 return done(null, false, {message: 'Email does not exists'});
-            compare(password, theUser.password, (err: any, result: boolean) => {
+            compare(password, theUser.password, (err: Error | undefined, result: boolean) => {
                 if (err)
                     return done(err);
                 if (!result)
@@ -39,7 +39,7 @@ passport.use(new JWTStrategy(
         secretOrKey: process.env.S_KEY,
     },
     (jwtPayload: any, cb: Function) => {
-        User.findById(jwtPayload.user._id, (err: any, theUser: UserType) => {
+        User.findById(jwtPayload.user._id, (err: CallbackError, theUser: UserType) => {
             if (err)
                 return cb(err);
             if (!theUser)
