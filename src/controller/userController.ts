@@ -1,9 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
-import { hash } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import passport, { authenticate } from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
+
+/**
+ * api call that get the current user's info
+ * return userinfo or error
+ */
+exports.get_user = (req: Request, res: Response, next: NextFunction) => {
+    User.findById((req.user as any)._id, 'username email date_join posts comments liked_post liked_comment')
+    .exec((err: any, theUser: UserType) => {
+        if (err)
+            return next(err);
+        res.send({theUser});
+    })
+}
 
 /**
  * api call that create a user
@@ -33,14 +46,14 @@ exports.user_create = [
         });
     }),
     body('password', 'Password must be longer than 6 character').trim().isLength({min: 6}).escape(),
-    check('confirm_password', "Please enter the password again").escape()
+    check('confirm_password', "Please enter the same password again").escape()
     .custom((value: string, { req }) => {
         return value === req.body.password;
     }),
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return next(errors.array());
+            next(errors.array());
         } else {
             hash(req.body.password, 10, (err: any, hashedPassword: string) => {
                 if (err)
@@ -91,3 +104,98 @@ exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
         });
     })(req, res, next);
 }
+
+/**
+ * api call that allow user to change user info except password
+ * return success and updated username or error
+ */
+exports.edit_info = [
+    body('username', "Username must be longer than 4 letter").trim().isLength({min: 4}).escape(),
+    check('username').custom(async (value: string, { req }) => {
+        return new Promise((resolve, reject) => {
+            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+                if (!theUser || theUser._id.equals(req.user._id))
+                    return resolve(true);
+                else 
+                    return reject('Username already exists');
+            });
+        });
+    }),
+    body('email', "Please enter a valid email address").normalizeEmail().isEmail().escape(),
+    check('email').custom(async (value: string, { req }) => {
+        return new Promise((resolve, reject) => {
+            User.findOne({username: value}).exec((err: any, theUser: UserType) => {
+                if (!theUser || theUser._id.equals(req.user._id))
+                    return resolve(true);
+                else 
+                    return reject('Email already exists');
+            });
+        });
+    }),
+    (req: Request, res: Response, next: NextFunction) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            next(errors.array());
+        } else {
+            User.findById((req.user as any)._id).exec((err: any, theUser: UserType) => {
+                if (err)
+                    return next(err);
+                const newUser = {
+                    username: req.body.username,
+                    email: req.body.email,
+                };
+                User.findByIdAndUpdate((req.user as any)._id, newUser, {}, (err: any, updated : UserType) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: true, username: newUser.username});
+                })
+            })
+        }
+    }
+]
+
+/**
+ * api call that allow user to update password
+ * return success or errors
+ */
+exports.change_password = [
+    body('password', "Password is empty").trim().isLength({min: 1}).escape(),
+    check('password').custom((value: string, { req }) => {
+        return new Promise((resolve, reject) => {
+            User.findById((req.user as any)._id).exec((err: any, theUser: UserType) => {
+                if (theUser) {
+                    compare(value, theUser.password, (err: any, result: boolean) => {
+                        if (result)
+                            return resolve(true);
+                        else
+                            return reject('Password incorrect');
+                    })
+                } else {
+                    return reject('No such user');
+                }
+            })
+        })
+    }),
+    body('new_password', 'Password must be longer than 6 character').trim().isLength({min: 6}).escape(),
+    check('confirm_password', "Please enter the same password again").escape()
+    .custom((value: string, { req }) => {
+        return value === req.body.new_password;
+    }),
+    (req: Request, res: Response, next: NextFunction) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            next(errors.array());
+        } else {
+            hash(req.body.new_password, 10, (err: any, hashedPassword: string) => {
+                if (err)
+                    return next(err);
+                User.findByIdAndUpdate((req.user as any)._id, {password : hashedPassword},
+                    {}, (err: any, updated: UserType) => {
+                        if (err)
+                            return next(err);
+                        res.send({success: true});
+                });
+            });
+        }
+    }
+]
