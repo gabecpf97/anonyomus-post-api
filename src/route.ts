@@ -1,6 +1,8 @@
 import express, { Request, Response, NextFunction } from "express";
 import passport from "passport";
+import upload from "./functions/multerFiles";
 const userController = require('./controller/userController');
+const postController = require('./controller/PostController');
 const router = express.Router();
 const auth = passport.authenticate('jwt', {session: false});
 
@@ -14,5 +16,9 @@ router.put('/user', auth, userController.edit_info);
 router.post('/user/create', userController.user_create);
 router.post('/user/log_in', userController.log_in);
 router.put('/user/change_password', auth, userController.change_password);
+
+// Post api calls
+router.post('/post', auth, upload.array('media', 12), postController.create_post);
+router.get('/post/:id', auth, postController.get_post);
 
 export default router;
