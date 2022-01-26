@@ -11,4 +11,15 @@ const Comment = model('Comment', new Schema({
     private: {type: Boolean, required: true},
 }));
 
+export interface CommentType {
+    user: string,
+    op_name: string,
+    message: string,
+    date: Date,
+    medias: string,
+    belong: Schema.Types.ObjectId[],
+    likes: Schema.Types.ObjectId[],
+    private: Boolean,
+}
+
 export default Comment;
