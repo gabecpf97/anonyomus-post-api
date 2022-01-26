@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import { compare, hash } from "bcrypt";
-import passport, { authenticate } from "passport";
+import passport from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
 import { CallbackError } from "mongoose";
