@@ -1,14 +1,14 @@
 import { Schema, model } from "mongoose";
 
-const PostSchema = new Schema({
+const CommentSchema = new Schema({
     user: {type: Schema.Types.ObjectId, ref: 'User', required: true},
-    op_name: {type: String, required: true},
+    op_name : {type: String, required: true},
     message: {type: String, required: true},
     date: {type: Date, required: true},
-    genre: [{type: Schema.Types.ObjectId, ref: 'Genre'}],
     medias: [{type: String}],
+    belong: {type: Schema.Types.ObjectId, ref: 'Post', required: true},
     likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
-    comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+    private: {type: Boolean, required: true},
 });
 
-module.exports = model('Post', PostSchema);
+module.exports = model('Comment', CommentSchema);
