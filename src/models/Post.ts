@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 const Post = model('Post', new Schema({
     user: {type: Schema.Types.ObjectId, ref: 'User', required: true},
@@ -11,7 +11,7 @@ const Post = model('Post', new Schema({
     comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
 }));
 
-export interface PostType {
+export interface PostType extends Document {
     user: string,
     op_name: string,
     message: string,

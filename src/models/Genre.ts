@@ -1,10 +1,10 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 const Genre = model('Genre', new Schema({
     name: {type: String, required: true},
 }));
 
-export interface GenreType {
+export interface GenreType extends Document {
     name: string
 }
 

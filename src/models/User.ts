@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 const User = model('User', new Schema({
     username: {type: String, required: true },
@@ -11,7 +11,7 @@ const User = model('User', new Schema({
     liked_comment: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
 }));
 
-export interface UserType {
+export interface UserType extends Document {
     username: string,
     email: string,
     password: string,

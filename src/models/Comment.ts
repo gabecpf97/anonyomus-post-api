@@ -1,4 +1,4 @@
-import { Schema, model } from "mongoose";
+import { Schema, model, Document } from "mongoose";
 
 const Comment = model('Comment', new Schema({
     user: {type: Schema.Types.ObjectId, ref: 'User', required: true},
@@ -11,13 +11,13 @@ const Comment = model('Comment', new Schema({
     private: {type: Boolean, required: true},
 }));
 
-export interface CommentType {
+export interface CommentType extends Document {
     user: string,
     op_name: string,
     message: string,
     date: Date,
-    medias: string,
-    belong: Schema.Types.ObjectId[],
+    medias: string[],
+    belong: Schema.Types.ObjectId,
     likes: Schema.Types.ObjectId[],
     private: Boolean,
 }
