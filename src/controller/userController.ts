@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import { hash } from "bcrypt";
-import passport from "passport";
+import { authenticate } from "passport";
 import { sign } from "jsonwebtoken";
-import Post from "../models/Post";
 import User, { UserType } from "../models/User";
 
 /**
@@ -68,3 +67,27 @@ exports.user_create = [
         }
     }
 ]
+
+/**
+ * api call that allow user to log in
+ * return token and basic user info if success
+ */
+exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
+    authenticate('local', {session: false}, (err: any, user: UserType, info: any) => {
+        if (err || !user) {
+            return next(new Error(info.message));
+        }
+        req.login(user, {session: false}, (err: any) => {
+            if (err)
+                return next(err);
+            const token = sign({ user }, process.env.S_KEY || '');
+            res.send({ 
+                token, 
+                user : {
+                    username: user.username, 
+                    date_join: user.date_join
+                } 
+            });
+});
+    })
+}

@@ -1,22 +1,45 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import router from "./route";
-const mongoose = require("mongoose");
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const passportJwt = require('passport-jwt');
-const JWTStrategy = passportJwt.Strategy;
-const ExtractJWT = passportJwt.ExtractJwt;
+import { connect, connection } from "mongoose";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local"; 
+import { Strategy as JWTStrategy, ExtractJwt } from "passport-jwt";
+import { compare } from "bcrypt";
+import User, { UserType } from "./models/User";
 const cors = require('cors');
-const bcrypt = require('bcrypt');
 require('dotenv').config();
+
+// passport setup for local using email and password
+passport.use(new LocalStrategy(
+    {
+        usernameField: 'email',
+        passwordField: 'password',
+    },
+    (email: string, password: string, done: Function) => {
+        User.findOne({ email }, (err: any, theUser: UserType) => {
+            if (err)
+                return done(err);
+            if (!theUser)
+                return done(null, false, {message: 'Email does not exists'});
+            compare(password, theUser.password, (err: any, result: boolean) => {
+                if (err)
+                    return done(err);
+                if (!result)
+                    return done(null, false, { message: 'Password incorrect' });
+                done(null, theUser, 'Logged in');
+            });
+        });
+    }
+));
 
 const app : Application = express();
 
 const mongoDB = `mongodb+srv://admin:${process.env.DB_PASSWORD}@cluster0.yag2o.mongodb.net/anonDB?retryWrites=true&w=majority`
-mongoose.connect(mongoDB, { useNewUrlParser: true, useUnifiedTopology: true });
-const db = mongoose.connection;
+connect(mongoDB);
+const db = connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
