@@ -199,3 +199,6 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
         })
     })
 }
+
+// Need to delete post since get lists will return it back find 
+// other way to show comment
