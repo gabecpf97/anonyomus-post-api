@@ -86,6 +86,10 @@ exports.create_post = [
     }
 ]
 
+/**
+ * api call that allow post owner to delete the post
+ * return success or error
+ */
 exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
     Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
         if (!(req.user as any)._id.equals(thePost.user)) {
