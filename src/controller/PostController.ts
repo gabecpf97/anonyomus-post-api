@@ -168,3 +168,34 @@ exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
         }
     });
 }
+
+/**
+ * api call that allow user to like a post
+ * return success or error
+ */
+exports.like_post = (req: Request, res: Response, next: NextFunction) => {
+    Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
+        if (err)
+            return next(err);
+        if (!thePost)
+            return next(new Error('No such post'));
+        parallel({
+            update_post: (callback) => {
+                const update_likes: ObjectId[] | undefined = thePost.likes;
+                update_likes?.push((req.user as any)._id);
+                Post.findByIdAndUpdate(req.params.id, {likes : update_likes},
+                    {}, callback);
+            },
+            update_user: (callback) => {
+                const update_liked: ObjectId[] | undefined = (req.user as any).liked_post;
+                update_liked?.push(thePost.id);
+                User.findByIdAndUpdate((req.user as any)._id, {liked_post: update_liked},
+                {}, callback);
+            }
+        }, (err) => {
+            if (err)
+                return next(err);
+            res.send({success: true});
+        })
+    })
+}
