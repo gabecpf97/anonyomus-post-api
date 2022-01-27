@@ -13,8 +13,8 @@ import User, { UserType } from "../models/User";
  * return post info or error
  */
 exports.get_post = (req: Request, res: Response, next: NextFunction) => {
-    Post.findById(req.params.id, 'op_name message date medias genre likes comments')
-    .populate('genre').exec((err: CallbackError, thePost: PostType) => {
+    Post.findById(req.params.id).populate('genre')
+    .exec((err: CallbackError, thePost: PostType) => {
         if (err)
             return next(err);
         res.send({thePost});
@@ -79,7 +79,6 @@ exports.create_post = [
                     if (err)
                         return next(err);
                     const post: PostType = new Post({
-                        user: (req.user as any)._id,
                         op_name: theName,
                         message: req.body.message,
                         date: new Date,
@@ -117,7 +116,8 @@ exports.create_post = [
  */
 exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
     Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
-        if (!(req.user as any)._id.equals(thePost.user)) {
+        if (findIndex((req.user as any).posts, thePost.id) > -1) {
+        // if (!(req.user as any)._id.equals(thePost.user)) {
             next(new Error('Not Authorize to delete this post'));
         } else {
             parallel({
