@@ -7,7 +7,6 @@ import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
 import Post, { PostType } from "../models/Post";
 import User, { UserType } from "../models/User";
-import Comment, { CommentType } from "../models/Comment";
 
 /**
  * api call that get the post's info
@@ -20,6 +19,32 @@ exports.get_post = (req: Request, res: Response, next: NextFunction) => {
             return next(err);
         res.send({thePost});
     })
+}
+
+/**
+ * api call that get all post in that genre by specify order
+ * return array of post id or error
+ */
+exports.get_posts_list = (req: Request, res: Response, next: NextFunction) => {
+    Post.find({}, '_id').sort({date: -1})
+    .exec((err: CallbackError, thePosts: PostType[]) => {
+        if (err)
+            return next(err);
+        res.send({thePosts}); 
+    });
+}
+
+/**
+ * api call that get all post in that genre by specify order
+ * return array of post id or error
+ */
+exports.get_popular_posts_list = (req: Request, res: Response, next: NextFunction) => {
+    Post.find({}, '_id').sort({likes: -1}).sort({date: -1})
+    .exec((err: CallbackError, thePosts: PostType[]) => {
+        if (err)
+            return next(err);
+        res.send({thePosts}); 
+    });
 }
 
 /**
