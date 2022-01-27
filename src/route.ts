@@ -20,5 +20,6 @@ router.put('/user/change_password', auth, userController.change_password);
 // Post api calls
 router.post('/post', auth, upload.array('media', 12), postController.create_post);
 router.get('/post/:id', auth, postController.get_post);
+router.delete('/post/:id', auth, postController.delete_post);
 
 export default router;

@@ -12,14 +12,14 @@ const Post = model('Post', new Schema({
 }));
 
 export interface PostType extends Document {
-    user: string,
-    op_name: string,
+    user?: string,
+    op_name?: string,
     message: string,
     date: Date,
-    medias: string[],
-    genre: Schema.Types.ObjectId[],
-    likes: Schema.Types.ObjectId[],
-    comments: Schema.Types.ObjectId[],
+    medias?: string[],
+    genre?: Schema.Types.ObjectId[],
+    likes?: Schema.Types.ObjectId[],
+    comments?: Schema.Types.ObjectId[],
 }
 
 export default Post;

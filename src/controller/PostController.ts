@@ -1,10 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
-import { CallbackError } from "mongoose";
-import { storeFilenameArr } from "../functions/otherHelpers";
+import { CallbackError, ObjectId } from "mongoose";
+import { map, parallel } from "async";
+import { findIndex, storeFilenameArr } from "../functions/otherHelpers";
 import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
 import Post, { PostType } from "../models/Post";
+import User, { UserType } from "../models/User";
+import Comment, { CommentType } from "../models/Comment";
 
 /**
  * api call that get the post's info
@@ -57,10 +60,19 @@ exports.create_post = [
                         date: new Date,
                     });
                     if (req.body.genre)
-                    post.genre = req.body.genre;
+                        post.genre = req.body.genre;
                     if (req.files)
                         post.medias= storeFilenameArr((req.files as Express.Multer.File[]));
-                    post.save((err: CallbackError) => {
+                    parallel({
+                        post: (callback) => {
+                            post.save(callback);
+                        },
+                        user: (callback) => {
+                            User.findByIdAndUpdate(((req.user as any)._id), 
+                                {posts: (req.user as any).posts.concat(post._id)},
+                                {}, callback);
+                        }
+                    }, (err) => {
                         if (err)
                             return next(err);
                         res.send({
@@ -73,3 +85,57 @@ exports.create_post = [
         }
     }
 ]
+
+exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
+    Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
+        if (!(req.user as any)._id.equals(thePost.user)) {
+            next(new Error('Not Authorize to delete this post'));
+        } else {
+            parallel({
+                delete_post: (callback) => {
+                    const update: PostType = new Post({
+                        user: '0',
+                        op_name: 'unknown',
+                        message: 'Deleted Post',
+                        date: thePost.date,
+                        medias: [],
+                        genre: [], 
+                        likes: [],
+                        comments: thePost.comments,
+                        _id: thePost._id
+                    });
+                    Post.findByIdAndUpdate(req.params.id, update, {}, callback);
+                },
+                delete_liked: (callback) => {
+                    if (thePost.likes) {
+                        map(thePost.likes, (userID: ObjectId, cb) => {
+                            User.findById(userID)
+                            .exec((err: CallbackError, theUser: UserType) => {
+                                if (err)
+                                    return cb(err);
+                                const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
+                                if (updated_likes) {
+                                    updated_likes.splice(findIndex(updated_likes, thePost.id), 1);
+                                    User.findByIdAndUpdate(theUser.id, 
+                                        {liked_post: updated_likes}, {}, cb);
+                                }
+                            });
+                        }, callback);
+                    }
+                },
+                user_delete: (callback) => {
+                    const update_list: ObjectId[] | undefined = (req.user as any).posts;
+                    if (update_list) {
+                        update_list.splice(findIndex(update_list, thePost.id), 1);
+                        User.findByIdAndUpdate((req.user as any)._id, 
+                            {posts: update_list}, {}, callback);
+                    }
+                }
+            }, (err, results) => {
+                if (err)
+                    return next(err);
+                res.send({success: true});
+            });
+        }
+    });
+}
