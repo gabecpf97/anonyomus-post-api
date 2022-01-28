@@ -183,6 +183,9 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
             return next(err);
         if (!thePost)
             return next(new Error('No such post'));
+        if (thePost.likes?.includes((req.user as any)._id)) {
+            return next(new Error('Already liked post'));
+        }
         parallel({
             update_post: (callback) => {
                 const update_likes: ObjectId[] | undefined = thePost.likes;
@@ -203,6 +206,3 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
         })
     })
 }
-
-// Need to delete post since get lists will return it back find 
-// other way to show comment
