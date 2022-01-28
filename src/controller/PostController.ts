@@ -14,13 +14,22 @@ import Comment, { CommentType } from "../models/Comment";
  * return post info or error
  */
 exports.get_post = (req: Request, res: Response, next: NextFunction) => {
-    Post.findById(req.params.id, 'op_name message date medias genre likes comments')
-    .populate('genre').exec((err: CallbackError, thePost: PostType) => {
+    Post.findById(req.params.id).populate('genre')
+    .exec((err: CallbackError, thePost: PostType) => {
         if (err)
             return next(err);
         if (!thePost)
             return next(err);
-        res.send({thePost});
+        const show = {
+            op_name: thePost.op_name,
+            message: thePost.message,
+            date: thePost.date,
+            medias: thePost.medias,
+            genre: thePost.genre,
+            likes: thePost.likes?.length,
+            comments: thePost.comments
+        };
+        res.send({thePost: show});
     })
 }
 

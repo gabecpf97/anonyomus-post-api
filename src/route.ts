@@ -1,5 +1,8 @@
 import express, { Request, Response, NextFunction } from "express";
+import fs, { access } from "fs";
+import { CallbackError } from "mongoose";
 import passport from "passport";
+import path from "path";
 import upload from "./functions/multerFiles";
 const userController = require('./controller/userController');
 const postController = require('./controller/PostController');
@@ -25,5 +28,16 @@ router.get('/post/:id', auth, postController.get_post);
 router.put('/post/:id/like', auth, postController.like_post);
 router.put('/post/:id/unlike', auth, postController.unlike_post);
 router.delete('/post/:id', auth, postController.delete_post);
+
+
+// Media api call to get media
+router.get('/media/:filename', (req: Request, res: Response, next: NextFunction) => {
+    const mediaPath = path.join(__dirname, '../uploads/', req.params.filename);
+    access(mediaPath, (fs as any).F_OK, (err: CallbackError) => {
+        if (err)
+            return next(err);
+        res.sendFile(mediaPath);
+    });
+})
 
 export default router;

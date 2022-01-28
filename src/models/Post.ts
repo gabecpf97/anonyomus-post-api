@@ -19,6 +19,7 @@ export interface PostType extends Document {
     medias?: string[],
     genre?: Schema.Types.ObjectId[],
     likes?: Schema.Types.ObjectId[],
+    like_amount?: number,
     comments?: Schema.Types.ObjectId[],
 }
 
