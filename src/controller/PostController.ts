@@ -226,7 +226,7 @@ exports.unlike_post = (req: Request, res: Response, next: NextFunction) => {
         if (!thePost)
             return next(new Error('No such post'));
         if (!thePost.likes?.includes((req.user as any)._id))
-            return next(new Error('You didnt liked this post'));
+            return next(new Error('You have not liked this post'));
         parallel({
             update_post: (callback) => {
                 const update_likes: ObjectId[] | undefined = thePost.likes;

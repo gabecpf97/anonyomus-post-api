@@ -200,3 +200,30 @@ exports.change_password = [
         }
     }
 ]
+
+/**
+ * api call that delete an user account given password
+ * return success or error
+ */
+exports.user_delete = [
+    body('password').custom((value: string, { req }) => {
+        return new Promise((resolve, reject) => {
+            compare(value, (req.user as any).password, (err: Error | undefined, result: boolean) => {
+                if (err || !result) {
+                    return reject('Incorrect password');
+                }
+                return resolve(true);
+            });
+        });
+    }),
+    (req: Request, res: Response, next: NextFunction) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) 
+            return next(errors.array());
+        User.findByIdAndRemove((req.user as any)._id, (err: CallbackError) => {
+            if (err)
+                return next(err);
+            res.send({success: true});
+        })
+    }
+]
