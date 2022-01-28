@@ -5,10 +5,10 @@ const Comment = model('Comment', new Schema({
     op_name : {type: String, required: true},
     message: {type: String, required: true},
     date: {type: Date, required: true},
-    medias: [{type: String}],
     belong: {type: Schema.Types.ObjectId, ref: 'Post', required: true},
-    likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
     private: {type: Boolean, required: true},
+    medias: [{type: String}],
+    likes: [{type: Schema.Types.ObjectId, ref: 'User'}],
 }));
 
 export interface CommentType extends Document {

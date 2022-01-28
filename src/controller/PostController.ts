@@ -7,7 +7,7 @@ import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
 import Post, { PostType } from "../models/Post";
 import User, { UserType } from "../models/User";
-import Comment, { CommentType } from "../models/Comment";
+import Comment from "../models/Comment";
 
 /**
  * api call that get the post's info

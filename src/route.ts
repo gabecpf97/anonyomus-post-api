@@ -6,6 +6,7 @@ import path from "path";
 import upload from "./functions/multerFiles";
 const userController = require('./controller/userController');
 const postController = require('./controller/PostController');
+const commentController = require('./controller/CommentController');
 const router = express.Router();
 const auth = passport.authenticate('jwt', {session: false});
 
@@ -30,6 +31,8 @@ router.put('/post/:id/like', auth, postController.like_post);
 router.put('/post/:id/unlike', auth, postController.unlike_post);
 router.delete('/post/:id', auth, postController.delete_post);
 
+// Comment api calls
+router.post('/comment/:id', auth, upload.array('media', 12), commentController.create_comment);
 
 // Media api call to get media
 router.get('/media/:filename', (req: Request, res: Response, next: NextFunction) => {
