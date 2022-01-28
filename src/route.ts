@@ -23,6 +23,7 @@ router.get('/posts', auth, postController.get_posts_list);
 router.get('/posts/popular', auth, postController.get_popular_posts_list);
 router.get('/post/:id', auth, postController.get_post);
 router.put('/post/:id/like', auth, postController.like_post);
+router.put('/post/:id/unlike', auth, postController.unlike_post);
 router.delete('/post/:id', auth, postController.delete_post);
 
 export default router;

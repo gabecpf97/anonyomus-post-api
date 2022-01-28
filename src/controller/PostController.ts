@@ -183,9 +183,8 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
             return next(err);
         if (!thePost)
             return next(new Error('No such post'));
-        if (thePost.likes?.includes((req.user as any)._id)) {
+        if (thePost.likes?.includes((req.user as any)._id))
             return next(new Error('Already liked post'));
-        }
         parallel({
             update_post: (callback) => {
                 const update_likes: ObjectId[] | undefined = thePost.likes;
@@ -205,4 +204,37 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
             res.send({success: true});
         })
     })
+}
+
+/**
+ * api call that allow user to unlike a post
+ * return success or error
+ */
+exports.unlike_post = (req: Request, res: Response, next: NextFunction) => {
+    Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
+        if (err)
+            return next(err);
+        if (!thePost)
+            return next(new Error('No such post'));
+        if (!thePost.likes?.includes((req.user as any)._id))
+            return next(new Error('You didnt liked this post'));
+        parallel({
+            update_post: (callback) => {
+                const update_likes: ObjectId[] | undefined = thePost.likes;
+                update_likes?.splice(findIndex(update_likes, (req.user as any)._id), 1);
+                Post.findByIdAndUpdate(req.params.id, {likes: update_likes}, 
+                    {}, callback);
+            },
+            update_user: (callback) => {
+                const update_liked: ObjectId[] | undefined = (req.user as any).liked_posts;
+                update_liked?.splice(findIndex(update_liked, thePost._id), 1);
+                User.findByIdAndUpdate((req.user as any)._id, {liked_posts: update_liked},
+                    {}, callback);
+            }
+        }, (err) => {
+            if (err)
+                return next(err);
+            res.send({success: true});
+        })
+    });
 }
