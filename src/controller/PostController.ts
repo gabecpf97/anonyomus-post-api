@@ -7,15 +7,18 @@ import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
 import Post, { PostType } from "../models/Post";
 import User, { UserType } from "../models/User";
+import Comment, { CommentType } from "../models/Comment";
 
 /**
  * api call that get the post's info
  * return post info or error
  */
 exports.get_post = (req: Request, res: Response, next: NextFunction) => {
-    Post.findById(req.params.id).populate('genre')
-    .exec((err: CallbackError, thePost: PostType) => {
+    Post.findById(req.params.id, 'op_name message date medias genre likes comments')
+    .populate('genre').exec((err: CallbackError, thePost: PostType) => {
         if (err)
+            return next(err);
+        if (!thePost)
             return next(err);
         res.send({thePost});
     })
@@ -79,6 +82,7 @@ exports.create_post = [
                     if (err)
                         return next(err);
                     const post: PostType = new Post({
+                        user: (req.user as any)._id,
                         op_name: theName,
                         message: req.body.message,
                         date: new Date,
@@ -116,25 +120,14 @@ exports.create_post = [
  */
 exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
     Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
-        if (findIndex((req.user as any).posts, thePost.id) > -1) {
-        // if (!(req.user as any)._id.equals(thePost.user)) {
+        if (err)
+            return next(err);
+        if (!thePost)
+            return next(new Error('No such post'));
+        if (!(req.user as any)._id.equals(thePost.user)) {
             next(new Error('Not Authorize to delete this post'));
         } else {
             parallel({
-                delete_post: (callback) => {
-                    const update: PostType = new Post({
-                        user: '0',
-                        op_name: 'unknown',
-                        message: 'Deleted Post',
-                        date: thePost.date,
-                        medias: [],
-                        genre: [], 
-                        likes: [],
-                        comments: thePost.comments,
-                        _id: thePost._id
-                    });
-                    Post.findByIdAndUpdate(req.params.id, update, {}, callback);
-                },
                 delete_liked: (callback) => {
                     if (thePost.likes) {
                         map(thePost.likes, (userID: ObjectId, cb) => {
@@ -145,25 +138,36 @@ exports.delete_post = (req: Request, res: Response, next: NextFunction) => {
                                 const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
                                 if (updated_likes) {
                                     updated_likes.splice(findIndex(updated_likes, thePost.id), 1);
-                                    User.findByIdAndUpdate(theUser.id, 
-                                        {liked_post: updated_likes}, {}, cb);
+                                User.findByIdAndUpdate(theUser.id, 
+                                    {liked_post: updated_likes}, {}, cb);
                                 }
                             });
                         }, callback);
                     }
                 },
-                user_delete: (callback) => {
+                user_post_delete: (callback) => {
                     const update_list: ObjectId[] | undefined = (req.user as any).posts;
                     if (update_list) {
                         update_list.splice(findIndex(update_list, thePost.id), 1);
                         User.findByIdAndUpdate((req.user as any)._id, 
                             {posts: update_list}, {}, callback);
                     }
-                }
-            }, (err, results) => {
+                },
+                delete_comment: (callback) => {
+                    if (thePost.comments) {
+                        map(thePost.comments, (commentID: ObjectId, cb) => {
+                            Comment.findByIdAndRemove(commentID, cb);
+                        }, callback);
+                    }
+                },
+            }, (err) => {
                 if (err)
                     return next(err);
-                res.send({success: true});
+                Post.findByIdAndRemove(req.params.id, (err: CallbackError) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: true});
+                });
             });
         }
     });
@@ -187,7 +191,7 @@ exports.like_post = (req: Request, res: Response, next: NextFunction) => {
                     {}, callback);
             },
             update_user: (callback) => {
-                const update_liked: ObjectId[] | undefined = (req.user as any).liked_post;
+                const update_liked: ObjectId[] | undefined = (req.user as any).liked_posts;
                 update_liked?.push(thePost.id);
                 User.findByIdAndUpdate((req.user as any)._id, {liked_post: update_liked},
                 {}, callback);

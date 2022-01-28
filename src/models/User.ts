@@ -7,8 +7,8 @@ const User = model('User', new Schema({
     date_join: {type: Date, required: true},
     posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
     comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
-    liked_post: [{type: Schema.Types.ObjectId, ref: 'Post'}],
-    liked_comment: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+    liked_posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
+    liked_comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
 }));
 
 export interface UserType extends Document {

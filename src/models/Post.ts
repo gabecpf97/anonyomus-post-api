@@ -1,6 +1,7 @@
 import { Schema, model, Document } from "mongoose";
 
 const Post = model('Post', new Schema({
+    user: {type: Schema.Types.ObjectId, ref: 'User', required: true},
     op_name: {type: String, required: true},
     message: {type: String, required: true},
     date: {type: Date, required: true},
@@ -11,6 +12,7 @@ const Post = model('Post', new Schema({
 }));
 
 export interface PostType extends Document {
+    user?: string,
     op_name?: string,
     message: string,
     date: Date,
