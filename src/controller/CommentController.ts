@@ -49,3 +49,25 @@ exports.create_comment = [
         });
     }
 ]
+
+/**
+ * api call that get the comment given its id
+ * return comment or error
+ */
+exports.get_comment = (req: Request, res: Response, next: NextFunction) => {
+    Comment.findById(req.params.id).exec((err: CallbackError, theComment: CommentType) => {
+        if (err)
+            return next(err);
+        if (!theComment)
+            return next(new Error('No such Comment'));
+        const show: any = {
+            op_name: theComment.op_name,
+            message: theComment.message,
+            date: theComment.date,
+            belong: theComment.belong,
+            medias: theComment.medias,
+            likes: theComment.likes
+        } 
+        res.send({theComment: show});
+    })
+}

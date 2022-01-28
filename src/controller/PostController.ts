@@ -20,7 +20,7 @@ exports.get_post = (req: Request, res: Response, next: NextFunction) => {
             return next(err);
         if (!thePost)
             return next(err);
-        const show = {
+        const show: any = {
             op_name: thePost.op_name,
             message: thePost.message,
             date: thePost.date,
