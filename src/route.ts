@@ -32,8 +32,10 @@ router.put('/post/:id/unlike', auth, postController.unlike_post);
 router.delete('/post/:id', auth, postController.delete_post);
 
 // Comment api calls
+// NEED TESTING
 router.post('/comment/:id', auth, upload.array('media', 12), commentController.create_comment);
 router.get('/comment/:id', auth, commentController.get_comment);
+router.get('/comments/:id', auth, commentController.get_comments_default);
 
 // Media api call to get media
 router.get('/media/:filename', (req: Request, res: Response, next: NextFunction) => {

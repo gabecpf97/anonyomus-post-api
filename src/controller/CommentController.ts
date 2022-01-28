@@ -66,8 +66,32 @@ exports.get_comment = (req: Request, res: Response, next: NextFunction) => {
             date: theComment.date,
             belong: theComment.belong,
             medias: theComment.medias,
-            likes: theComment.likes
+            likes: theComment.likes,
+            private: theComment.private
         } 
         res.send({theComment: show});
+    })
+}
+
+/**
+ * get comment list by latest
+ * reutrn array of comment id or error
+ */
+exports.get_comments_default = (req: Request, res: Response, next: NextFunction) => {
+    Post.findById(req.params.id).populate('comments').exec((err: CallbackError, thePost: PostType) => {
+        if (err)
+            return next(err);
+        if (!thePost)
+            return next(new Error('No such post'));
+        const sorted: CommentType[] = (thePost.comments as any).sort((a: CommentType, b: CommentType) => (b.date > a.date));
+        if (thePost.user === (req.user as any)._id)
+            return res.send({theComments: sorted})
+        for (let i: number = 0; i < (sorted?.length || 0); i++) {
+            if (sorted[i].private) {
+                sorted.splice(i, 1);
+                i--;
+            }
+        }
+        res.send({theComments: sorted});
     })
 }
