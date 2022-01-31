@@ -15,6 +15,7 @@ exports.get_user = (req: Request, res: Response, next: NextFunction) => {
     .exec((err: CallbackError, theUser: UserType) => {
         if (err)
             return next(err);
+        console.log(theUser);
         res.send({theUser});
     })
 }

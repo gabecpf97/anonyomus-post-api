@@ -86,32 +86,36 @@ const create_post = [
         } else {
             if ((req as any).fileValidationError) {
                 next(new Error((req as any).fileValidationError));
-            } else {
-                getName(async (err: CallbackError, theName: string) => {
+        } else {
+            getName(async (err: CallbackError, theName: string) => {
+                if (err)
+                    return next(err);
+                const post: PostType = new Post({
+                    user: (req.user as any)._id,
+                    op_name: theName,
+                    message: req.body.message,
+                    date: new Date,
+                });
+                if (req.body.genre)
+                    post.genre = req.body.genre;
+                if (req.files)
+                    post.medias= storeFilenameArr((req.files as Express.Multer.File[]));
+                parallel({
+                    save_post: (callback) => {
+                        post.save(callback);
+                    },
+                    save_user_post: (callback) => {
+                        User.findByIdAndUpdate(((req.user as any)._id), 
+                            {posts: (req.user as any).posts.concat(post._id)}, 
+                            {}, callback);
+                    }
+                }, (err) => {
                     if (err)
                         return next(err);
-                    const post: PostType = new Post({
-                        user: (req.user as any)._id,
-                        op_name: theName,
-                        message: req.body.message,
-                        date: new Date,
-                    });
-                    if (req.body.genre)
-                        post.genre = req.body.genre;
-                    if (req.files)
-                        post.medias= storeFilenameArr((req.files as Express.Multer.File[]));
-                    try {
-                        const likeaction = await Promise.all([
-                            post.save(),
-                            User.findByIdAndUpdate(((req.user as any)._id), 
-                                {posts: (req.user as any).posts.concat(post._id)}, {})
-                        ]);
                         res.send({success: true, post_id: post._id});
-                    } catch (err) {
-                        return next(err);
-                    }
                 });
-            }
+            });
+        }
         }
     }
 ]
@@ -129,83 +133,48 @@ const delete_post = (req: Request, res: Response, next: NextFunction) => {
         if (!(req.user as any)._id.equals(thePost.user)) {
             next(new Error('Not Authorize to delete this post'));
         } else {
-            const delete_liked = thePost.likes?.forEach(async (likeID: ObjectId) => {
-                User.findById(likeID)
-                .exec(async (err: CallbackError, theUser: UserType) => {
+            parallel({
+                delete_liked: (callback) => {
+                    if (thePost.likes) {
+                        map(thePost.likes, (userID: ObjectId, cb) => {
+                            User.findById(userID)
+                            .exec((err: CallbackError, theUser: UserType) => {
+                                if (err)
+                                    return cb(err);
+                                const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
+                                if (updated_likes) {
+                                    updated_likes.splice(findIndex(updated_likes, thePost.id), 1);
+                                User.findByIdAndUpdate(theUser.id, 
+                                    {liked_posts: updated_likes}, {}, cb);
+                                }
+                            });
+                        }, callback);
+                    }
+                },
+                user_post_delete: (callback) => {
+                    const update_list: ObjectId[] | undefined = (req.user as any).posts;
+                    if (update_list) {
+                        update_list.splice(findIndex(update_list, thePost.id), 1);
+                        User.findByIdAndUpdate((req.user as any)._id, 
+                            {posts: update_list}, {}, callback);
+                    }
+                },
+                delete_comment: (callback) => {
+                    if (thePost.comments) {
+                        map(thePost.comments, (commentID: ObjectId, cb) => {
+                            Comment.findByIdAndRemove(commentID, cb);
+                        }, callback);
+                    }
+                },
+            }, (err) => {
+                if (err)
+                    return next(err);
+                Post.findByIdAndRemove(req.params.id, (err: CallbackError) => {
                     if (err)
                         return next(err);
-                    const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
-                    updated_likes?.splice(findIndex(updated_likes, thePost._id), 1);
-                    console.log('delete likes ', theUser);
-                    User.findByIdAndUpdate(theUser.id, 
-                        {liked_posts: updated_likes}, {});
+                    res.send({success: true});
                 });
             });
-            const user_post_delete = async () => {
-                const update_list: ObjectId[] | undefined = (req.user as any).posts;
-                update_list?.splice(findIndex(update_list, thePost.id), 1);
-                console.log('delete post in user');
-                User.findByIdAndUpdate((req.user as any)._id, 
-                    {posts: update_list}, {});
-            }
-            const delete_comment = thePost.comments?.forEach(async (commentID: ObjectId) => {
-                console.log('delete comment ', commentID);
-                Comment.findByIdAndRemove(commentID);
-            });
-            const delete_post = Post.findByIdAndRemove(req.params.id);
-            try {
-                const delete_action = await Promise.all([
-                    delete_liked,
-                    user_post_delete,
-                    delete_comment,
-                    // delete_post
-                ]);
-                res.send({success: true});
-            } catch (err) {
-                return next(err);
-            }
-            // parallel({
-            //     delete_liked: (callback) => {
-            //         if (thePost.likes) {
-            //             map(thePost.likes, (userID: ObjectId, cb) => {
-            //                 User.findById(userID)
-            //                 .exec((err: CallbackError, theUser: UserType) => {
-            //                     if (err)
-            //                         return cb(err);
-            //                     const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
-            //                     if (updated_likes) {
-            //                         updated_likes.splice(findIndex(updated_likes, thePost.id), 1);
-            //                     User.findByIdAndUpdate(theUser.id, 
-            //                         {liked_post: updated_likes}, {}, cb);
-            //                     }
-            //                 });
-            //             }, callback);
-            //         }
-            //     },
-            //     user_post_delete: (callback) => {
-            //         const update_list: ObjectId[] | undefined = (req.user as any).posts;
-            //         if (update_list) {
-            //             update_list.splice(findIndex(update_list, thePost.id), 1);
-            //             User.findByIdAndUpdate((req.user as any)._id, 
-            //                 {posts: update_list}, {}, callback);
-            //         }
-            //     },
-            //     delete_comment: (callback) => {
-            //         if (thePost.comments) {
-            //             map(thePost.comments, (commentID: ObjectId, cb) => {
-            //                 Comment.findByIdAndRemove(commentID, cb);
-            //             }, callback);
-            //         }
-            //     },
-            // }, (err) => {
-            //     if (err)
-            //         return next(err);
-            //     Post.findByIdAndRemove(req.params.id, (err: CallbackError) => {
-            //         if (err)
-            //             return next(err);
-            //         res.send({success: true});
-            //     });
-            // });
         }
     });
 }
