@@ -12,10 +12,10 @@ import Comment, { CommentType } from "../models/Comment";
  * api call that create comment given post id
  * return successs and comment id or error
  */
-exports.create_comment = [
+const create_comment = [
     body('message', "Message must not be empty").trim().isLength({min: 1}).escape(),
     body('private', "Please use value provided").isBoolean().escape(),
-    (req: Request, res: Response, next: NextFunction) => {
+    async (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
         if (!errors.isEmpty())
             return next(errors.array());
@@ -54,7 +54,7 @@ exports.create_comment = [
  * api call that get the comment given its id
  * return comment or error
  */
-exports.get_comment = (req: Request, res: Response, next: NextFunction) => {
+const get_comment = async (req: Request, res: Response, next: NextFunction) => {
     Comment.findById(req.params.id).exec((err: CallbackError, theComment: CommentType) => {
         if (err)
             return next(err);
@@ -73,11 +73,11 @@ exports.get_comment = (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
-/**
- * get comment list by latest
- * reutrn array of comment id or error
- */
-exports.get_comments_default = (req: Request, res: Response, next: NextFunction) => {
+// /**
+//  * get comment list by latest
+//  * reutrn array of comment id or error
+//  */
+const get_comments_default = (req: Request, res: Response, next: NextFunction) => {
     Post.findById(req.params.id).populate('comments').exec((err: CallbackError, thePost: PostType) => {
         if (err)
             return next(err);
@@ -95,3 +95,11 @@ exports.get_comments_default = (req: Request, res: Response, next: NextFunction)
         res.send({theComments: sorted});
     })
 }
+
+const commentController = {
+    create_comment,
+    get_comment,
+    get_comments_default
+}
+
+export default commentController;

@@ -4,9 +4,11 @@ import { CallbackError } from "mongoose";
 import passport from "passport";
 import path from "path";
 import upload from "./functions/multerFiles";
+import commentController from "./controller/CommentController";
+import postController from "./controller/PostController";
 const userController = require('./controller/userController');
-const postController = require('./controller/PostController');
-const commentController = require('./controller/CommentController');
+// const postController = require('./controller/PostController');
+// const commentController = require('./controller/CommentController');
 const router = express.Router();
 const auth = passport.authenticate('jwt', {session: false});
 

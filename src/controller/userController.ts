@@ -11,7 +11,7 @@ import { CallbackError } from "mongoose";
  * return userinfo or error
  */
 exports.get_user = (req: Request, res: Response, next: NextFunction) => {
-    User.findById((req.user as any)._id, 'username email date_join posts comments liked_post liked_comment')
+    User.findById((req.user as any)._id, 'username email date_join posts comments liked_posts liked_comments')
     .exec((err: CallbackError, theUser: UserType) => {
         if (err)
             return next(err);
