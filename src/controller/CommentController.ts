@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { body, check, validationResult } from "express-validator";
+import { body, validationResult } from "express-validator";
 import { CallbackError, ObjectId } from "mongoose";
 import { map, parallel } from "async";
 import { findIndex, sortCommentBy, storeFilenameArr } from "../functions/otherHelpers";
@@ -56,7 +56,7 @@ const create_comment = [
                             {}, callback);
                     })
                 }
-            }, (err) => {
+            }, (err: Error | undefined) => {
                 if (err)
                     return next(err);
                 res.send({success: true, id: comment._id});

@@ -109,7 +109,7 @@ const create_post = [
                             {posts: (req.user as any).posts.concat(post._id)}, 
                             {}, callback);
                     }
-                }, (err) => {
+                }, (err: Error | undefined) => {
                     if (err)
                         return next(err);
                         res.send({success: true, post_id: post._id});
@@ -164,7 +164,7 @@ const delete_post = (req: Request, res: Response, next: NextFunction) => {
                         }, callback);
                     }
                 },
-            }, (err) => {
+            }, (err: Error | undefined) => {
                 if (err)
                     return next(err);
                 Post.findByIdAndRemove(req.params.id, (err: CallbackError) => {
@@ -202,7 +202,7 @@ const like_post = (req: Request, res: Response, next: NextFunction) => {
                 User.findByIdAndUpdate((req.user as any)._id, {liked_posts: update_liked},
                 {}, callback);
             }
-        }, (err) => {
+        }, (err: Error | undefined) => {
             if (err)
                 return next(err);
             res.send({success: true});
@@ -235,7 +235,7 @@ const unlike_post = (req: Request, res: Response, next: NextFunction) => {
                 User.findByIdAndUpdate((req.user as any)._id, {liked_posts: update_liked},
                     {}, callback);
             }
-        }, (err) => {
+        }, (err: Error | undefined) => {
             if (err)
                 return next(err);
             res.send({success: true});
