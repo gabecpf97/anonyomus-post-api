@@ -21,7 +21,7 @@ const create_comment = [
             return next(errors.array());
         if ((req as any).fileValidationError)
             return next((req as any).fileValidationError);
-        getName((err: Error, theName: string) => {
+        getName(async (err: Error, theName: string) => {
             if (err)
                 return next(err);
             const comment: CommentType = new Comment({
@@ -34,18 +34,33 @@ const create_comment = [
             });
             if (req.files)
                 comment.medias = storeFilenameArr((req.files as Express.Multer.File[]));
-            comment.save((err: CallbackError) => {
+            parallel({
+                save_comment: (callback) => {
+                    comment.save(callback);
+                },
+                update_user: (callback) => {
+                    const update_list: ObjectId[] | undefined = (req.user as any).comments;
+                    update_list?.push(comment._id);
+                    User.findByIdAndUpdate((req.user as any)._id, 
+                        {comments: update_list}, {}, callback);
+                },
+                update_post: (callback) => {
+                    Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
+                        if (err)
+                            return next(err);
+                        if (!thePost)
+                            return next(err);
+                        const update_post: ObjectId[] | undefined = thePost.comments;
+                        update_post?.push(comment._id);
+                        Post.findByIdAndUpdate(req.params.id, {comments: update_post}, 
+                            {}, callback);
+                    })
+                }
+            }, (err) => {
                 if (err)
                     return next(err);
-                const update_list = (req.user as any).comments;
-                update_list.push(comment._id);
-                User.findByIdAndUpdate((req.user as any)._id, 
-                    {comments: update_list}, {}, (err: CallbackError) => {
-                    if (err)
-                        return next(err);
-                    res.send({success: true, id: comment._id});
-                })
-            });
+                res.send({success: true, id: comment._id});
+            })
         });
     }
 ]
@@ -73,10 +88,10 @@ const get_comment = async (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
-// /**
-//  * get comment list by latest
-//  * reutrn array of comment id or error
-//  */
+/**
+ * get comment list by latest
+ * reutrn array of comment id or error
+ */
 const get_comments_default = (req: Request, res: Response, next: NextFunction) => {
     Post.findById(req.params.id).populate('comments').exec((err: CallbackError, thePost: PostType) => {
         if (err)

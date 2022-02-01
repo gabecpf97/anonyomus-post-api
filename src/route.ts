@@ -6,9 +6,7 @@ import path from "path";
 import upload from "./functions/multerFiles";
 import commentController from "./controller/CommentController";
 import postController from "./controller/PostController";
-const userController = require('./controller/userController');
-// const postController = require('./controller/PostController');
-// const commentController = require('./controller/CommentController');
+import userController from "./controller/userController";
 const router = express.Router();
 const auth = passport.authenticate('jwt', {session: false});
 
@@ -22,7 +20,7 @@ router.put('/user', auth, userController.edit_info);
 router.post('/user/create', userController.user_create);
 router.post('/user/log_in', userController.log_in);
 router.put('/user/change_password', auth, userController.change_password);
-// router.delete('/user', auth, userController.user_delete); // need testing
+router.delete('/user', auth, userController.user_delete); // need testing
 
 // Post api calls
 router.post('/post', auth, upload.array('media', 12), postController.create_post);

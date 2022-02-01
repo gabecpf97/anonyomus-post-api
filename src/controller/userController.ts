@@ -10,7 +10,7 @@ import { CallbackError } from "mongoose";
  * api call that get the current user's info
  * return userinfo or error
  */
-exports.get_user = (req: Request, res: Response, next: NextFunction) => {
+const get_user = (req: Request, res: Response, next: NextFunction) => {
     User.findById((req.user as any)._id, 'username email date_join posts comments liked_posts liked_comments')
     .exec((err: CallbackError, theUser: UserType) => {
         if (err)
@@ -24,7 +24,7 @@ exports.get_user = (req: Request, res: Response, next: NextFunction) => {
  * api call that create a user
  * return token and user's basic info
  */
-exports.user_create = [
+const user_create = [
     body('username', "Username must be longer than 4 letter").trim().isLength({min: 4}).escape(),
     check('username').custom(async (value: string) => {
         return new Promise((resolve, reject) => {
@@ -87,7 +87,7 @@ exports.user_create = [
  * api call that allow user to log in
  * return token and basic user info if success
  */
-exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
+const log_in = async (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate('local', {session: false}, (err: CallbackError, user: UserType, info: any) => {
         if (err || !user) {
             return next(new Error(info.message));
@@ -111,7 +111,7 @@ exports.log_in = async (req: Request, res: Response, next: NextFunction) => {
  * api call that allow user to change user info except password
  * return success and updated username or error
  */
-exports.edit_info = [
+const edit_info = [
     body('username', "Username must be longer than 4 letter").trim().isLength({min: 4}).escape(),
     check('username').custom(async (value: string, { req }) => {
         return new Promise((resolve, reject) => {
@@ -160,7 +160,7 @@ exports.edit_info = [
  * api call that allow user to update password
  * return success or errors
  */
-exports.change_password = [
+const change_password = [
     body('password', "Password is empty").trim().isLength({min: 1}).escape(),
     check('password').custom((value: string, { req }) => {
         return new Promise((resolve, reject) => {
@@ -206,7 +206,7 @@ exports.change_password = [
  * api call that delete an user account given password
  * return success or error
  */
-exports.user_delete = [
+const user_delete = [
     body('password').custom((value: string, { req }) => {
         return new Promise((resolve, reject) => {
             compare(value, (req.user as any).password, (err: Error | undefined, result: boolean) => {
@@ -228,3 +228,14 @@ exports.user_delete = [
         })
     }
 ]
+
+const userController = {
+    user_create,
+    log_in,
+    get_user,
+    edit_info,
+    change_password,
+    user_delete
+}
+
+export default userController;
