@@ -81,7 +81,7 @@ const get_comment = async (req: Request, res: Response, next: NextFunction) => {
             date: theComment.date,
             belong: theComment.belong,
             medias: theComment.medias,
-            likes: theComment.likes,
+            likes: theComment.likes.length,
             private: theComment.private
         } 
         res.send({theComment: show});
@@ -116,7 +116,7 @@ const comment_like = (req: Request, res: Response, next: NextFunction) => {
         if (err)
             return next(err);
         if (!theComment)
-            return next(err);
+            return next(new Error('No such comment'));
         if (findIndex(theComment.likes, (req.user as any)._id) > -1)
             return next(new Error('Already liked'));
         parallel({
@@ -149,7 +149,7 @@ const comment_like = (req: Request, res: Response, next: NextFunction) => {
         if (err)
             return next(err);
         if (!theComment)
-            return next(err);
+            return next(new Error('No such comment'));
         if (findIndex(theComment.likes, (req.user as any)._id) < 0)
             return next(new Error('Have not liked this comment'));
         parallel({
@@ -173,12 +173,69 @@ const comment_like = (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
+/**
+ * api call that allow owner of comment or the post to delete the comment
+ * return success or error
+ */
+const comment_delete = (req: Request, res: Response, next: NextFunction) => {
+    Comment.findById(req.params.id).exec((err: CallbackError, theComment: CommentType) => {
+        if (err)
+            return next(err);
+        if (!theComment)
+            return next(new Error('No such comment'));
+        Post.findById(theComment.belong).exec((err: CallbackError, thePost: PostType) => {
+            if (err)
+                return next(err);
+            if (!thePost)
+                return next(new Error('No such post'));
+            if (!(theComment.user as any).equals((req.user as any)._id) ||
+                !(thePost.user as any).equals((req.user as any)._id))
+                return next(new Error('Not authorized to do this'));
+            parallel({
+                post_delete: (callback) => {
+                    const update_comment: ObjectId[] | undefined = thePost.comments;
+                    update_comment?.splice(findIndex(update_comment, theComment._id), 1);
+                    Post.findByIdAndUpdate(thePost._id, {comments: update_comment},
+                        {}, callback); 
+                },
+                user_delete: (callback) => {
+                    const update_comment: ObjectId[] | undefined = (req.user as any).comments;
+                    update_comment?.splice(findIndex(update_comment, theComment._id), 1);
+                    User.findByIdAndUpdate((req.user as any)._id, {comments: update_comment}, 
+                        {}, callback);
+                },
+                liked_delete: (callback) => {
+                    map(theComment.likes, (userID, cb) => {
+                        User.findById(userID).exec((err: CallbackError, theUser: UserType) => {
+                            if (err)
+                                return next(err);
+                            const update_comment: ObjectId[] | undefined = theUser.comments;
+                            update_comment?.splice(findIndex(update_comment, theComment._id), 1);
+                            User.findByIdAndUpdate(userID, {comments: update_comment},
+                                {}, cb);
+                        });
+                    }, callback);
+                }
+            }, (err: Error | undefined) => {
+                if (err)
+                    return next(err);
+                Comment.findByIdAndRemove(theComment._id, (err: CallbackError) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: true});
+                });
+            });
+        });
+    });
+}
+
 const commentController = {
     create_comment,
     get_comment,
     get_comments_list,
     comment_like,
     comment_unlike,
+    comment_delete
 }
 
 export default commentController;

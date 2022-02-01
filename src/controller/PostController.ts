@@ -142,11 +142,9 @@ const delete_post = (req: Request, res: Response, next: NextFunction) => {
                                 if (err)
                                     return cb(err);
                                 const updated_likes: ObjectId[] | undefined = theUser.liked_posts;
-                                if (updated_likes) {
-                                    updated_likes.splice(findIndex(updated_likes, thePost.id), 1);
+                                updated_likes?.splice(findIndex(updated_likes, thePost.id), 1);
                                 User.findByIdAndUpdate(theUser.id, 
                                     {liked_posts: updated_likes}, {}, cb);
-                                }
                             });
                         }, callback);
                     }

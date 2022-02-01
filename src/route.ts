@@ -36,6 +36,7 @@ router.post('/comment/:id', auth, upload.array('media', 12), commentController.c
 router.get('/comment/:id', auth, commentController.get_comment);
 router.put('/comment/:id/like', auth, commentController.comment_like);
 router.put('/comment/:id/unlike', auth, commentController.comment_unlike);
+router.delete('/comment/:id', auth, commentController.comment_delete);
 router.get('/comments/:id', auth, commentController.get_comments_list);
 
 // Media api call to get media
