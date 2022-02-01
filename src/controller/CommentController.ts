@@ -108,7 +108,7 @@ const get_comments_list = (req: Request, res: Response, next: NextFunction) => {
 }
 
 /**
- * api call allow a user to like a comment
+ * api call that allow user to like a comment
  * return success or error
  */
 const comment_like = (req: Request, res: Response, next: NextFunction) => {
@@ -140,11 +140,45 @@ const comment_like = (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
+/**
+ * api call that allow user to unlike a comment
+ * return success or error
+ */
+ const comment_unlike = (req: Request, res: Response, next: NextFunction) => {
+    Comment.findById(req.params.id).exec((err: CallbackError, theComment: CommentType) => {
+        if (err)
+            return next(err);
+        if (!theComment)
+            return next(err);
+        if (findIndex(theComment.likes, (req.user as any)._id) < 0)
+            return next(new Error('Have not liked this comment'));
+        parallel({
+            update_comment: (callback) => {
+                const update_likes: ObjectId[] | undefined = theComment.likes;
+                update_likes?.splice(findIndex(update_likes, (req.user as any)._id));
+                Comment.findByIdAndUpdate(req.params.id, {likes: update_likes}, 
+                    {}, callback);
+            },
+            update_user: (callback) => {
+                const update_liked: ObjectId[] | undefined = (req.user as any).liked_comments;
+                update_liked?.splice(findIndex(update_liked, theComment._id));
+                User.findByIdAndUpdate((req.user as any)._id, {liked_comments: update_liked}, 
+                    {}, callback);
+            }
+        }, (err: Error | undefined) => {
+            if (err)
+                return next(err);
+            res.send({success: true});
+        })
+    })
+}
+
 const commentController = {
     create_comment,
     get_comment,
     get_comments_list,
     comment_like,
+    comment_unlike,
 }
 
 export default commentController;

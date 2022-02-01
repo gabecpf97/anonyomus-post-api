@@ -13,7 +13,7 @@ const storeFilenameArr = (fileArr: Express.Multer.File[]) => {
 // Helper function that find the index of from an array of object id
 const findIndex = (theArr: ObjectId[], target: ObjectId) => {
     for (let i: number = 0; i < theArr.length; i++) {
-        if (theArr[i] === target)
+        if ((theArr[i] as any).equals(target))
             return i;
     }
     return -1;
