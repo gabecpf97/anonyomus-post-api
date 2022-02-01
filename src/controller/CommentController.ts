@@ -89,7 +89,7 @@ const get_comment = async (req: Request, res: Response, next: NextFunction) => {
 }
 
 /**
- * get comment list by latest
+ * api call that get comment list by latest
  * reutrn array of comment id or error
  */
 const get_comments_list = (req: Request, res: Response, next: NextFunction) => {
@@ -98,7 +98,7 @@ const get_comments_list = (req: Request, res: Response, next: NextFunction) => {
             return next(err);
         if (!thePost)
             return next(new Error('No such post'));
-        let byPopular = false;
+        let byPopular: boolean = false;
         if (req.query.by)
             byPopular = true;
         const isOwner = (thePost.user as any).equals((req.user as any)._id);
@@ -107,10 +107,44 @@ const get_comments_list = (req: Request, res: Response, next: NextFunction) => {
     });
 }
 
+/**
+ * api call allow a user to like a comment
+ * return success or error
+ */
+const comment_like = (req: Request, res: Response, next: NextFunction) => {
+    Comment.findById(req.params.id).exec((err: CallbackError, theComment: CommentType) => {
+        if (err)
+            return next(err);
+        if (!theComment)
+            return next(err);
+        if (findIndex(theComment.likes, (req.user as any)._id) > -1)
+            return next(new Error('Already liked'));
+        parallel({
+            update_comment: (callback) => {
+                const update_likes: ObjectId[] | undefined = theComment.likes;
+                update_likes.push((req.user as any)._id);
+                Comment.findByIdAndUpdate(req.params.id, {likes: update_likes}, 
+                    {}, callback);
+            },
+            update_user: (callback) => {
+                const update_liked: ObjectId[] | undefined = (req.user as any).liked_comments;
+                update_liked?.push(theComment._id);
+                User.findByIdAndUpdate((req.user as any)._id, {liked_comments: update_liked}, 
+                    {}, callback);
+            }
+        }, (err: Error | undefined) => {
+            if (err)
+                return next(err);
+            res.send({success: true});
+        })
+    })
+}
+
 const commentController = {
     create_comment,
     get_comment,
-    get_comments_list
+    get_comments_list,
+    comment_like,
 }
 
 export default commentController;
