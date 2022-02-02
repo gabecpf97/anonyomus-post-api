@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import { CallbackError, ObjectId } from "mongoose";
-import { map, parallel } from "async";
+import { map, parallel, reject } from "async";
 import { findIndex, storeFilenameArr } from "../functions/otherHelpers";
 import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
@@ -14,7 +14,7 @@ import Comment from "../models/Comment";
  * return post info or error
  */
 const get_post = (req: Request, res: Response, next: NextFunction) => {
-    Post.findById(req.params.id).populate('genre')
+    Post.findById(req.params.id)
     .exec((err: CallbackError, thePost: PostType) => {
         if (err)
             return next(err);
@@ -65,16 +65,23 @@ const get_popular_posts_list = (req: Request, res: Response, next: NextFunction)
  */
 const create_post = [
     body('message', "Message must not be empty").trim().isLength({min: 1}).escape(),
-    check('genre').custom((value: string) => {
+    check('genre').custom((value: string[]) => {
         if (value === undefined) {
             return true;
         } else {
-            return new Promise((resolve: Function, rejects: Function) => {
-                Genre.findOne({name: value}).exec((err: CallbackError, theGenre: GenreType) => {
-                    if (err || !theGenre) {
-                        return rejects('Not a genre, try using other if none fit')
+            return new Promise((resolve: Function, reject: Function) => {
+                map(value, (genreID: string, cb) => {
+                    Genre.findById(genreID).exec(cb);
+                }, (err, results) => {
+                    if (err)
+                        return reject("No such genre");
+                    if (results && results.length) {
+                        for (let i: number = 0; i < results.length; i++) {
+                            if (!results[i])
+                                return reject('No such genre');
+                        }
+                        return resolve(true);
                     }
-                    return resolve(true);
                 });
             });
         }
@@ -97,7 +104,7 @@ const create_post = [
                     date: new Date,
                 });
                 if (req.body.genre)
-                    post.genre = req.body.genre;
+                    post.genre = [...req.body.genre];
                 if (req.files)
                     post.medias= storeFilenameArr((req.files as Express.Multer.File[]));
                 parallel({
@@ -108,11 +115,26 @@ const create_post = [
                         User.findByIdAndUpdate(((req.user as any)._id), 
                             {posts: (req.user as any).posts.concat(post._id)}, 
                             {}, callback);
+                    },
+                    save_genre: (callback) => {
+                        if (post.genre) {
+                            map(post.genre, (genreID: ObjectId, cb) => {
+                                Genre.findById(genreID)
+                                .exec((err: CallbackError, theGenre: GenreType) => {
+                                    if (err)
+                                        return next(err);
+                                    if (!theGenre)
+                                        return next(new Error('No such genre'));
+                                    Genre.findByIdAndUpdate(theGenre._id,
+                                        {posts: theGenre.posts?.concat(post._id)}, {}, cb);    
+                                })
+                            }, callback);
+                        }
                     }
                 }, (err: Error | undefined) => {
                     if (err)
                         return next(err);
-                        res.send({success: true, post_id: post._id});
+                    res.send({success: true, post_id: post._id});
                 });
             });
         }
@@ -164,6 +186,23 @@ const delete_post = (req: Request, res: Response, next: NextFunction) => {
                         }, callback);
                     }
                 },
+                delete_from_genre: (callback) => {
+                    if (thePost.genre) {
+                        map(thePost.genre, (genreID: ObjectId, cb) => {
+                            Genre.findById(genreID)
+                            .exec((err: CallbackError, theGenre: GenreType) => {
+                                if (err)
+                                    return next(err);
+                                if (!theGenre)
+                                    return next(new Error('No such error'));
+                                const update_posts: ObjectId[] | undefined = theGenre.posts;
+                                update_posts?.splice(findIndex(update_posts, thePost._id), 1);
+                                Genre.findByIdAndUpdate(theGenre._id, 
+                                    {posts: update_posts}, {}, cb); 
+                            });
+                        }, callback);
+                    }
+                }
             }, (err: Error | undefined) => {
                 if (err)
                     return next(err);
