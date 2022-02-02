@@ -7,7 +7,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as JWTStrategy, ExtractJwt } from "passport-jwt";
 import { compare } from "bcrypt";
 import User, { UserType } from "./models/User";
-const cors = require('cors');
+import cors from 'cors';
 require('dotenv').config();
 
 // passport setup for local using email and password
