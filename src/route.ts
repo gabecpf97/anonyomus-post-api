@@ -42,6 +42,7 @@ router.get('/comments/:id', auth, commentController.get_comments_list);
 
 // Genre api calls
 router.post('/genre', auth, genreController.create_genre);
+router.get('/genres', auth, genreController.get_genre_list);
 router.get('/genre/:id', auth, genreController.get_genre_post);
 router.delete('/genre/:id', auth, genreController.delete_genre);
 

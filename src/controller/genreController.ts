@@ -1,12 +1,31 @@
-import { find, map, parallel } from "async";
+import { map, parallel } from "async";
 import { Request, Response, NextFunction } from "express";
-import { body, validationResult } from "express-validator";
+import { body, check, validationResult } from "express-validator";
 import { CallbackError, ObjectId } from "mongoose";
 import { findIndex, sortListBy } from "../functions/otherHelpers";
-import getName from "../functions/randomName";
 import Genre, { GenreType } from "../models/Genre";
 import Post, { PostType } from "../models/Post";
 
+/**
+ * api call that get array of genre name
+ * return array of genre name sorted in alphabetical order or error
+ */
+const get_genre_list = (req: Request, res: Response, next: NextFunction) => {
+    Genre.find({}, 'name').exec((err: CallbackError, theGenres: GenreType[]) => {
+        if (err)
+            return next(err);
+        theGenres.sort((a: GenreType, b: GenreType) => {
+            return a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1;
+        })
+        res.send({theGenres});
+    })
+}
+
+/**
+ * api call that get all post of the specified genre
+ * return array of post sorted in time or likes 
+ *  or error
+ */
 const get_genre_post = (req: Request, res: Response, next: NextFunction) => {
     Genre.findById(req.params.id)
     .exec((err: CallbackError, theGenre: GenreType) => {
@@ -22,8 +41,22 @@ const get_genre_post = (req: Request, res: Response, next: NextFunction) => {
     })
 }
 
+/**
+ * api call that create genre given name
+ * return success and its id or error
+ */
 const create_genre = [
     body('name', "Name must not be empty").trim().isLength({min: 1}).escape(),
+    check('name').custom((value: string) => {
+        return new Promise((resolve, reject) => {
+            Genre.findOne({name: value.toLowerCase()})
+            .exec((err: CallbackError, theGenre: GenreType) => {
+                if (err || theGenre)
+                    return reject('Genre already exists');
+                return resolve(true);
+            });
+        })
+    }),
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
         if (!errors.isEmpty())
@@ -39,6 +72,10 @@ const create_genre = [
     }
 ]
 
+/**
+ * api call that delete a genre and remove this genre from post that contain it
+ * return success or error
+ */
 const delete_genre = (req: Request, res: Response, next: NextFunction) => {
     Genre.findById(req.params.id).exec((err: CallbackError, theGenre: GenreType) => {
         if (err)
@@ -75,6 +112,7 @@ const delete_genre = (req: Request, res: Response, next: NextFunction) => {
 }
 
 const genreController = {
+    get_genre_list,
     get_genre_post,
     create_genre,
     delete_genre,
