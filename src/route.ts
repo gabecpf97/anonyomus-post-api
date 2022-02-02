@@ -7,6 +7,7 @@ import upload from "./functions/multerFiles";
 import commentController from "./controller/CommentController";
 import postController from "./controller/PostController";
 import userController from "./controller/userController";
+import genreController from "./controller/genreController";
 const router = express.Router();
 const auth = passport.authenticate('jwt', {session: false});
 
@@ -38,6 +39,11 @@ router.put('/comment/:id/like', auth, commentController.comment_like);
 router.put('/comment/:id/unlike', auth, commentController.comment_unlike);
 router.delete('/comment/:id', auth, commentController.comment_delete);
 router.get('/comments/:id', auth, commentController.get_comments_list);
+
+// Genre api calls
+router.post('/genre', auth, genreController.create_genre);
+router.get('/genre/:id', auth, genreController.get_genre_post);
+router.delete('/genre/:id', auth, genreController.delete_genre);
 
 // Media api call to get media
 router.get('/media/:filename', (req: Request, res: Response, next: NextFunction) => {
