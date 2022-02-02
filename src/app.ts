@@ -1,5 +1,6 @@
 import express, { Application, Request, Response, NextFunction } from "express";
 import router from "./route";
+import logger from "morgan"
 import { CallbackError, connect, connection } from "mongoose";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local"; 
@@ -57,6 +58,7 @@ const db = connection;
 db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 
 app.use(cors());
+app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
