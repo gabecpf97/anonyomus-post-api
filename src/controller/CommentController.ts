@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { body, validationResult } from "express-validator";
 import { CallbackError, ObjectId } from "mongoose";
 import { map, parallel } from "async";
-import { findIndex, sortCommentBy, storeFilenameArr } from "../functions/otherHelpers";
+import { findIndex, sortListBy, storeFilenameArr } from "../functions/otherHelpers";
 import getName from "../functions/randomName";
 import Post, { PostType } from "../models/Post";
 import User, { UserType } from "../models/User";
@@ -102,7 +102,7 @@ const get_comments_list = (req: Request, res: Response, next: NextFunction) => {
         if (req.query.by)
             byPopular = true;
         const isOwner = (thePost.user as any).equals((req.user as any)._id);
-        const theComments = sortCommentBy((thePost.comments as any), byPopular, isOwner);
+        const theComments = sortListBy((thePost.comments as any), byPopular, isOwner);
         res.send({theComments});
     });
 }

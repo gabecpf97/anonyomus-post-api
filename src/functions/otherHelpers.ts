@@ -20,8 +20,8 @@ const findIndex = (theArr: ObjectId[], target: ObjectId) => {
 }
 
 // Helper function that sort comment 
-const sortCommentBy = (theArr: CommentType[], popular: boolean, owner: boolean) => {
-    const sorted: CommentType[] = theArr.sort((a: CommentType, b: CommentType) => {
+const sortListBy = (theArr: Array<any> | undefined, popular: boolean, owner: boolean) => {
+    const sorted: Array<any> | undefined = theArr?.sort((a: any, b: any) => {
         if (popular) {
             if (a.likes.length > b.likes.length) {
                 return -1;
@@ -38,13 +38,15 @@ const sortCommentBy = (theArr: CommentType[], popular: boolean, owner: boolean) 
             return 1;
         }
     });
-    const theComments: ObjectId[] = [];
-    for (let i: number = 0; i < (sorted?.length || 0); i++) {
-        if (!sorted[i].private || owner) {
-            theComments.push(sorted[i]._id);
+    if (sorted) {
+        const theList: ObjectId[] = [];
+        for (let i: number = 0; i < (sorted?.length || 0); i++) {
+            if (!sorted[i].private || owner) {
+                theList.push(sorted[i]._id);
+            }
         }
+        return theList;
     }
-    return theComments;
 }
 
-export {storeFilenameArr, findIndex, sortCommentBy};
+export {storeFilenameArr, findIndex, sortListBy};
