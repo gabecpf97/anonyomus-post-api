@@ -5,6 +5,7 @@ import passport from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
 import { CallbackError } from "mongoose";
+import { createTransport } from "nodemailer";
 
 /**
  * api call that get the current user's info
@@ -228,13 +229,46 @@ const user_delete = [
     }
 ]
 
+/**
+ * api call that allow user to reset password when forgot
+ */
+const user_forgot_password = async (req: Request, res: Response, next: NextFunction) => {
+    const transporter = createTransport({
+        // host: 'smtp.gmail.com',
+        // port: 587,
+        // secure: false,
+        service: 'Gmail',
+        auth: {
+            user: process.env.EMAIL_NAME,
+            pass: process.env.EMAIL_PASS
+        },
+        tls: {
+            rejectUnauthorized: false
+        }
+    });
+    const info = await transporter.sendMail({
+        from: `"Myself" <${process.env.EMAIL_NAME}>`,
+        to: 'gabephoe@gmail.com',
+        subject: "From nodemailer",
+        text: "This is from nodemailer",
+        html: "<H2>Hello from node</H2>",
+    });
+    try {
+        console.log("message sent: ", info.messageId);
+    } catch (err) {
+        return next(err);
+    }
+    res.send({msg: 'check console'});
+}
+
 const userController = {
     user_create,
     log_in,
     get_user,
     edit_info,
     change_password,
-    user_delete
+    user_delete,
+    user_forgot_password
 }
 
 export default userController;
