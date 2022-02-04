@@ -1,4 +1,5 @@
 import { ObjectId } from "mongoose";
+import { createTransport } from "nodemailer";
 import { CommentType } from "../models/Comment";
 
 // Helper function that get a array of file and return an array of filename
@@ -49,4 +50,27 @@ const sortListBy = (theArr: Array<any> | undefined, popular: boolean, owner: boo
     }
 }
 
-export {storeFilenameArr, findIndex, sortListBy};
+//Helper function that send email via nodemaielr
+const sendEmailTo = async (userEmail: string, userId: ObjectId) => {
+    const transporter = createTransport({
+        service: 'Gmail',
+        auth: {
+            user: process.env.EMAIL_NAME,
+            pass: process.env.EMAIL_PASS
+        },
+        tls: {
+            rejectUnauthorized: false
+        }
+    });
+    const info = await transporter.sendMail({
+        from: `"Gabriel" <${process.env.EMAIL_NAME}>`,
+        to: 'gabephoe@gmail.com',
+        subject: "Anon app password reset",
+        text: "Password reset",
+        html: `<H2>Click to reset password</H2>
+                <a href="http://localhost:5000/reset/${userId}">reset password</a>`,
+    });
+    return info;
+}
+
+export {storeFilenameArr, findIndex, sortListBy, sendEmailTo};

@@ -5,7 +5,8 @@ import passport from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
 import { CallbackError } from "mongoose";
-import { createTransport } from "nodemailer";
+import { sendEmailTo } from "../functions/otherHelpers";
+import { SentMessageInfo } from "nodemailer";
 
 /**
  * api call that get the current user's info
@@ -47,7 +48,10 @@ const user_create = [
             });
         });
     }),
-    body('password', 'Password must be longer than 6 character').trim().isLength({min: 6}).escape(),
+    check('password').trim().isLength({min: 6})
+    .withMessage('Passowrd must be longer than 6 letter').custom(value => {
+        return /\d/.test(value)
+    }).withMessage('Password must inclue numbers'),
     check('confirm_password', "Please enter the same password again").escape()
     .custom((value: string, { req }) => {
         return value === req.body.password;
@@ -178,7 +182,10 @@ const change_password = [
             })
         })
     }),
-    body('new_password', 'Password must be longer than 6 character').trim().isLength({min: 6}).escape(),
+    check('new_password').trim().isLength({min: 6})
+    .withMessage('Passowrd must be longer than 6 letter').custom(value => {
+        return /\d/.test(value)
+    }).withMessage('Password must inclue numbers'),
     check('confirm_password', "Please enter the same password again").escape()
     .custom((value: string, { req }) => {
         return value === req.body.new_password;
@@ -230,36 +237,71 @@ const user_delete = [
 ]
 
 /**
- * api call that allow user to reset password when forgot
+ * api call that email that have links to reset user's password
+ * return success or error
  */
-const user_forgot_password = async (req: Request, res: Response, next: NextFunction) => {
-    const transporter = createTransport({
-        // host: 'smtp.gmail.com',
-        // port: 587,
-        // secure: false,
-        service: 'Gmail',
-        auth: {
-            user: process.env.EMAIL_NAME,
-            pass: process.env.EMAIL_PASS
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
-    const info = await transporter.sendMail({
-        from: `"Myself" <${process.env.EMAIL_NAME}>`,
-        to: 'gabephoe@gmail.com',
-        subject: "From nodemailer",
-        text: "This is from nodemailer",
-        html: "<H2>Hello from node</H2>",
-    });
-    try {
-        console.log("message sent: ", info.messageId);
-    } catch (err) {
-        return next(err);
+const user_forgot_password = [
+    body('email', "Please enter an email address").normalizeEmail().isEmail().escape(),
+    check('email').custom((value: string) => {
+        return new Promise((resolves, rejects) => {
+            User.findOne({email: value}).exec((err: CallbackError, theUser: UserType) => {
+                if (err || !theUser)
+                    return rejects('No such email');
+                return resolves(true);
+            })
+        })
+    }),
+    async (req: Request, res: Response, next: NextFunction) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty())
+            return next(errors.array());
+        User.findOne({email: req.body.email}).exec((err: CallbackError, theUser: UserType) => {
+            if (err)
+                return next(err);
+            if (!theUser)
+                return next(new Error('No such user'));
+            const info: SentMessageInfo = sendEmailTo(req.body.email, theUser._id);
+            try {
+                res.send({success: true, msg: info.messageId});
+            } catch (err) {
+                return next(err);
+            }
+        })
     }
-    res.send({msg: 'check console'});
-}
+]
+
+/**
+ * api call that reset a user's password
+ * return success or error
+ */
+const user_reset = [
+    check('password').trim().isLength({min: 6})
+    .withMessage('Passowrd must be longer than 6 letter').custom(value => {
+        return /\d/.test(value)
+    }).withMessage('Password must inclue numbers'),
+    check('confirm_password', 'Please enter the same password again')
+    .custom((value: string, { req }) => {
+        return value === req.body.password;
+    }),
+    (req: Request, res: Response, next: NextFunction) => {
+        User.findById(req.params.id).exec((err: CallbackError, theUser: UserType) => {
+            if (err)
+                return next(err);
+            if (!theUser)
+                return next(new Error('No such user'));
+            hash(req.body.password, 10, (err: Error | undefined, hashedPassword: string) => {
+                if (err)
+                    return next(err);
+                User.findByIdAndUpdate(req.params.id, {password: hashedPassword},
+                    {}, (err: CallbackError) => {
+                    if (err)
+                        return next(err);
+                    res.send({success: true});
+                });
+            });
+        });
+    }
+]
 
 const userController = {
     user_create,
@@ -268,7 +310,8 @@ const userController = {
     edit_info,
     change_password,
     user_delete,
-    user_forgot_password
+    user_forgot_password,
+    user_reset
 }
 
 export default userController;

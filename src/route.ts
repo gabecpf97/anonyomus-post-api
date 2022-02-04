@@ -23,6 +23,7 @@ router.post('/user/log_in', userController.log_in);
 router.put('/user/change_password', auth, userController.change_password);
 router.delete('/user', auth, userController.user_delete); // need testing
 router.post('/user/forgot_password', userController.user_forgot_password);
+router.put('/user/reset/:id', userController.user_reset);
 
 // Post api calls
 router.post('/post', auth, upload.array('media', 12), postController.create_post);
