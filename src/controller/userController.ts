@@ -7,6 +7,7 @@ import User, { UserType } from "../models/User";
 import { CallbackError } from "mongoose";
 import { sendEmailTo } from "../functions/otherHelpers";
 import { SentMessageInfo } from "nodemailer";
+import { randomBytes } from "crypto";
 
 /**
  * api call that get the current user's info
@@ -260,12 +261,18 @@ const user_forgot_password = [
                 return next(err);
             if (!theUser)
                 return next(new Error('No such user'));
-            const info: SentMessageInfo = sendEmailTo(req.body.email, theUser._id);
-            try {
-                res.send({success: true, msg: info.messageId});
-            } catch (err) {
-                return next(err);
-            }
+            const reset_key = randomBytes(12).toString('hex');
+            User.findByIdAndUpdate(theUser._id, {reset_key}, {}, 
+            (err: CallbackError) => {
+                if(err)
+                    return next(err);
+                const info: SentMessageInfo = sendEmailTo(req.body.email, reset_key);
+                try {
+                    res.send({success: true, msg: info.messageId});
+                } catch (err) {
+                    return next(err);
+                }
+            })
         })
     }
 ]
@@ -284,7 +291,10 @@ const user_reset = [
         return value === req.body.password;
     }),
     (req: Request, res: Response, next: NextFunction) => {
-        User.findById(req.params.id).exec((err: CallbackError, theUser: UserType) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty())
+            return next(errors.array());
+        User.findOne({reset_key: req.params.id}).exec((err: CallbackError, theUser: UserType) => {
             if (err)
                 return next(err);
             if (!theUser)
@@ -292,7 +302,7 @@ const user_reset = [
             hash(req.body.password, 10, (err: Error | undefined, hashedPassword: string) => {
                 if (err)
                     return next(err);
-                User.findByIdAndUpdate(req.params.id, {password: hashedPassword},
+                User.findByIdAndUpdate(theUser._id, {password: hashedPassword},
                     {}, (err: CallbackError) => {
                     if (err)
                         return next(err);

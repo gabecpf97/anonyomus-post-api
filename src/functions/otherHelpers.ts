@@ -51,7 +51,7 @@ const sortListBy = (theArr: Array<any> | undefined, popular: boolean, owner: boo
 }
 
 //Helper function that send email via nodemaielr
-const sendEmailTo = async (userEmail: string, userId: ObjectId) => {
+const sendEmailTo = async (userEmail: string, reset_key: string) => {
     const transporter = createTransport({
         service: 'Gmail',
         auth: {
@@ -68,7 +68,7 @@ const sendEmailTo = async (userEmail: string, userId: ObjectId) => {
         subject: "Anon app password reset",
         text: "Password reset",
         html: `<H2>Click to reset password</H2>
-                <a href="http://localhost:5000/reset/${userId}">reset password</a>`,
+                <a href="http://localhost:5000/reset/${reset_key}">${reset_key}</a>`,
     });
     return info;
 }

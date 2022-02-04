@@ -9,6 +9,7 @@ const User = model('User', new Schema({
     comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
     liked_posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
     liked_comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+    reset_key: {type: String},
 }));
 
 export interface UserType extends Document {
@@ -20,6 +21,7 @@ export interface UserType extends Document {
     comments?: Schema.Types.ObjectId[],
     liked_posts?: Schema.Types.ObjectId[],
     liked_comments?: Schema.Types.ObjectId[],
+    reset_key?: string,
 }
 
 export default User;
