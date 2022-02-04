@@ -50,18 +50,20 @@ const sortListBy = (theArr: Array<any> | undefined, popular: boolean, owner: boo
     }
 }
 
+// Nodemailer transporter setup
+const transporter = createTransport({
+    service: 'Gmail',
+    auth: {
+        user: process.env.EMAIL_NAME,
+        pass: process.env.EMAIL_PASS
+    },
+    tls: {
+        rejectUnauthorized: false
+    }
+});
+
 //Helper function that send email via nodemaielr
 const sendEmailTo = async (userEmail: string, reset_key: string) => {
-    const transporter = createTransport({
-        service: 'Gmail',
-        auth: {
-            user: process.env.EMAIL_NAME,
-            pass: process.env.EMAIL_PASS
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
     const info = await transporter.sendMail({
         from: `"Gabriel" <${process.env.EMAIL_NAME}>`,
         to: 'gabephoe@gmail.com',
@@ -73,4 +75,17 @@ const sendEmailTo = async (userEmail: string, reset_key: string) => {
     return info;
 }
 
-export {storeFilenameArr, findIndex, sortListBy, sendEmailTo};
+// Helper function that send email for confirmation when signing up
+const sendConfirm = async (userEmail: string, confirm_code: string) => {
+    const info = await transporter.sendMail({
+        from: `"Gabriel" <${process.env.EMAIL_NAME}>`,
+        to: 'gabephoe@gmail.com',
+        subject: "Anon app confirmatino code",
+        text: "Account confirmation code",
+        html: `<H2>You account confirmation code</H2>
+                <p>${confirm_code}</p>`,
+    });
+    return info;
+}
+
+export {storeFilenameArr, findIndex, sortListBy, sendEmailTo, sendConfirm};

@@ -89,6 +89,15 @@ const user_create = [
 ]
 
 /**
+ * api call that confirm the code and save the user
+ * return token and user info or error
+ */
+const confirm_user_code = (req: Request, res: Response, next: NextFunction) => {
+    
+}
+
+
+/**
  * api call that allow user to log in
  * return token and basic user info if success
  */

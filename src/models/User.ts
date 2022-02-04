@@ -9,6 +9,7 @@ const User = model('User', new Schema({
     comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
     liked_posts: [{type: Schema.Types.ObjectId, ref: 'Post'}],
     liked_comments: [{type: Schema.Types.ObjectId, ref: 'Comment'}],
+    confirm_code: {type: String},
     reset_key: {type: String},
 }));
 
@@ -21,6 +22,7 @@ export interface UserType extends Document {
     comments?: Schema.Types.ObjectId[],
     liked_posts?: Schema.Types.ObjectId[],
     liked_comments?: Schema.Types.ObjectId[],
+    confirm_code?: string,
     reset_key?: string,
 }
 
