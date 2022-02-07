@@ -91,7 +91,6 @@ const user_create = [
  * return token and user info or error
  */
 const confirm_user_code =[
-    // might need to change this
     body('code', "Please enter code that was sent to email").trim().isLength({min: 6}).escape(),
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
@@ -133,6 +132,8 @@ const log_in = async (req: Request, res: Response, next: NextFunction) => {
         if (err || !user) {
             return next(new Error(info.message));
         }
+        if (!user.verified)
+            return next(new Error('Please verify email first'));
         req.login(user, {session: false}, (err: CallbackError) => {
             if (err)
                 return next(err);
