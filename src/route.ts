@@ -19,9 +19,10 @@ router.get('/', (req: Request, res: Response, next: NextFunction) => {
 router.get('/user', auth, userController.get_user);
 router.put('/user', auth, userController.edit_info);
 router.post('/user/create', userController.user_create);
+router.post('/user/verify/:id', userController.confirm_user_code);
 router.post('/user/log_in', userController.log_in);
 router.put('/user/change_password', auth, userController.change_password);
-router.delete('/user', auth, userController.user_delete); // need testing
+router.delete('/user', auth, userController.user_delete);
 router.post('/user/forgot_password', userController.user_forgot_password);
 router.put('/user/reset/:id', userController.user_reset);
 

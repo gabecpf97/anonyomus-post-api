@@ -1,6 +1,6 @@
 import { ObjectId } from "mongoose";
 import { createTransport } from "nodemailer";
-import { CommentType } from "../models/Comment";
+require('dotenv').config();
 
 // Helper function that get a array of file and return an array of filename
 const storeFilenameArr = (fileArr: Express.Multer.File[]) => {
@@ -65,8 +65,9 @@ const transporter = createTransport({
 //Helper function that send email via nodemaielr
 const sendEmailTo = async (userEmail: string, reset_key: string) => {
     const info = await transporter.sendMail({
-        from: `"Gabriel" <${process.env.EMAIL_NAME}>`,
-        to: 'gabephoe@gmail.com',
+        from: `"Anon app" <${process.env.EMAIL_NAME}>`,
+        // to: 'gabephoe@gmail.com',
+        to: userEmail,
         subject: "Anon app password reset",
         text: "Password reset",
         html: `<H2>Click to reset password</H2>
@@ -76,15 +77,18 @@ const sendEmailTo = async (userEmail: string, reset_key: string) => {
 }
 
 // Helper function that send email for confirmation when signing up
-const sendConfirm = async (userEmail: string, confirm_code: string) => {
+const sendConfirm = async (userEmail: string, confirm_code: string | undefined) => {
+    console.log('here');
     const info = await transporter.sendMail({
-        from: `"Gabriel" <${process.env.EMAIL_NAME}>`,
-        to: 'gabephoe@gmail.com',
+        from: `"Anon App" <${process.env.EMAIL_NAME}>`,
+        // to: 'gabephoe@gmail.com',
+        to: userEmail,
         subject: "Anon app confirmatino code",
         text: "Account confirmation code",
         html: `<H2>You account confirmation code</H2>
                 <p>${confirm_code}</p>`,
     });
+    console.log('here2');
     return info;
 }
 

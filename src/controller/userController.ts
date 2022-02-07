@@ -5,7 +5,7 @@ import passport from "passport";
 import { sign } from "jsonwebtoken";
 import User, { UserType } from "../models/User";
 import { CallbackError } from "mongoose";
-import { sendEmailTo } from "../functions/otherHelpers";
+import { sendConfirm, sendEmailTo } from "../functions/otherHelpers";
 import { SentMessageInfo } from "nodemailer";
 import { randomBytes } from "crypto";
 
@@ -59,28 +59,30 @@ const user_create = [
     }),
     (req: Request, res: Response, next: NextFunction) => {
         const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            next(errors.array());
-        } else {
-            hash(req.body.password, 10, (err: Error | undefined, hashedPassword: string) => {
+        if (!errors.isEmpty())
+            return next(errors.array());
+        hash(req.body.password, 10, (err: Error | undefined, hashedPassword: string) => {
+            if (err)
+                return next(err);
+            const user: UserType = new User({
+                username: req.body.username,
+                email: req.body.email,
+                password: hashedPassword,
+                date_join: new Date,
+                verified: false,
+                confirm_code: Math.floor(Math.random() * (999999 - 100000) + 100000),
+            });
+            user.save(async (err: CallbackError) => {
                 if (err)
                     return next(err);
-                const user: UserType = new User({
-                    username: req.body.username,
-                    email: req.body.email,
-                    password: hashedPassword,
-                    date_join: new Date,
-                    verified: false,
-                    // add confirm code
-                });
-                // send email
-                user.save((err: CallbackError) => {
-                    if (err)
-                        return next(err);
-                    res.send({success: true});
-                });
-            })
-        }
+                const info: SentMessageInfo = await sendConfirm(user.email, user.confirm_code);
+                try {
+                    res.send({success: true, id: user._id, msg: info.messageId});
+                } catch  (err) {
+                    return next(err);
+                }
+            });
+        });
     }
 ]
 
@@ -88,31 +90,38 @@ const user_create = [
  * api call that confirm the code and save the user
  * return token and user info or error
  */
-const confirm_user_code = (req: Request, res: Response, next: NextFunction) => {
-    User.findById(req.params.id).exec((err: CallbackError, theUser: UserType) => {
-        if (err)
-            return next(err);
-        if (!theUser)
-            return next(new Error('No such user'));
-        if (theUser.verified)
-            return next(new Error('User already verified'));
-        if (req.body.code !== theUser.confirm_code)
-            return next(new Error('Incorrect code'));
-        User.findByIdAndUpdate(theUser._id, {verified: true, confirm_code: null}, 
-            {}, (err: CallbackError) => {
+const confirm_user_code =[
+    // might need to change this
+    body('code', "Please enter code that was sent to email").trim().isLength({min: 6}).escape(),
+    (req: Request, res: Response, next: NextFunction) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty())
+            return next(errors.array());
+        User.findById(req.params.id).exec((err: CallbackError, theUser: UserType) => {
             if (err)
                 return next(err);
-            const token = sign({theUser}, process.env.S_KEY || "");
-            res.send({ 
-                token, 
-                theUser : {
-                    username: theUser.username, 
-                    date_join: theUser.date_join
-                } 
+            if (!theUser)
+                return next(new Error('No such user'));
+            if (theUser.verified)
+                return next(new Error('User already verified'));
+            if (req.body.code !== theUser.confirm_code)
+                return next(new Error('Incorrect code'));
+            User.findByIdAndUpdate(theUser._id, {verified: true, confirm_code: null}, 
+                {}, (err: CallbackError) => {
+                if (err)
+                    return next(err);
+                const token = sign({theUser}, process.env.S_KEY || "");
+                res.send({ 
+                    token, 
+                    theUser : {
+                        username: theUser.username, 
+                        date_join: theUser.date_join
+                    } 
+                });
             });
-        })
-    })
-}
+        });
+    }
+] 
 
 
 /**
@@ -342,6 +351,7 @@ const user_reset = [
 
 const userController = {
     user_create,
+    confirm_user_code,
     log_in,
     get_user,
     edit_info,
