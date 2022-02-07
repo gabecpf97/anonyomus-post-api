@@ -70,18 +70,14 @@ const user_create = [
                     email: req.body.email,
                     password: hashedPassword,
                     date_join: new Date,
+                    verified: false,
+                    // add confirm code
                 });
+                // send email
                 user.save((err: CallbackError) => {
                     if (err)
                         return next(err);
-                    const token = sign({user}, process.env.S_KEY || "");
-                    res.send({ 
-                        token, 
-                        theUser : {
-                            username: user.username, 
-                            date_join: user.date_join
-                        } 
-                    });
+                    res.send({success: true});
                 });
             })
         }
@@ -93,7 +89,29 @@ const user_create = [
  * return token and user info or error
  */
 const confirm_user_code = (req: Request, res: Response, next: NextFunction) => {
-    
+    User.findById(req.params.id).exec((err: CallbackError, theUser: UserType) => {
+        if (err)
+            return next(err);
+        if (!theUser)
+            return next(new Error('No such user'));
+        if (theUser.verified)
+            return next(new Error('User already verified'));
+        if (req.body.code !== theUser.confirm_code)
+            return next(new Error('Incorrect code'));
+        User.findByIdAndUpdate(theUser._id, {verified: true, confirm_code: null}, 
+            {}, (err: CallbackError) => {
+            if (err)
+                return next(err);
+            const token = sign({theUser}, process.env.S_KEY || "");
+            res.send({ 
+                token, 
+                theUser : {
+                    username: theUser.username, 
+                    date_join: theUser.date_join
+                } 
+            });
+        })
+    })
 }
 
 
