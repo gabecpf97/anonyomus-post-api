@@ -30,6 +30,7 @@ router.put('/user/reset/:id', userController.user_reset);
 router.post('/post', auth, upload.array('media', 12), postController.create_post);
 router.get('/posts', auth, postController.get_posts_list);
 router.get('/posts/popular', auth, postController.get_popular_posts_list);
+router.get('/posts/serach', auth, postController.search_post);
 router.get('/post/:id', auth, postController.get_post);
 router.put('/post/:id/like', auth, postController.like_post);
 router.put('/post/:id/unlike', auth, postController.unlike_post);

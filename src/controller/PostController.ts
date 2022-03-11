@@ -282,6 +282,19 @@ const unlike_post = (req: Request, res: Response, next: NextFunction) => {
     });
 }
 
+/**
+ * api call that search for post by keyword in query
+ * return list of post id or error
+ */
+const search_post = (req: Request, res: Response, next: NextFunction) => {
+    Post.find({message: {"$regex": req.query.search, "$option": "i"}}, '_id')
+    .exec((err: CallbackError, thePosts: PostType[]) => {
+        if (err)
+            return next(err);
+        res.send({thePosts});
+    });
+}
+
 const postController = {
     get_post,
     get_posts_list,
@@ -289,7 +302,8 @@ const postController = {
     create_post,
     like_post,
     unlike_post,
-    delete_post
+    delete_post,
+    search_post
 }
 
 export default postController;
