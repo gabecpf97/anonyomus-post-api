@@ -295,6 +295,24 @@ const search_post = (req: Request, res: Response, next: NextFunction) => {
     });
 }
 
+/**
+ * api call that check whether user have liked the post or not
+ * return boolean or error
+ */
+const check_liked = (req: Request, res: Response, next: NextFunction) => {
+    Post.findById(req.params.id).exec((err: CallbackError, thePost: PostType) => {
+        if (err)
+            return next(err);
+        if (!thePost)
+            return next(new Error('No such post'));
+        if (thePost.likes) {
+            if (findIndex(thePost.likes, (req.user as any)._id) > 0)
+                return res.send({status: true});
+        }
+        res.send({status: false});
+    });
+}
+
 const postController = {
     get_post,
     get_posts_list,
@@ -303,7 +321,8 @@ const postController = {
     like_post,
     unlike_post,
     delete_post,
-    search_post
+    search_post,
+    check_liked
 }
 
 export default postController;
