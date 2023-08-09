@@ -24,8 +24,9 @@ const create_comment = [
         getName(async (err: Error, theName: string) => {
             if (err)
                 return next(err);
+            // need more investigation on this underfined error
             const comment: CommentType = new Comment({
-                user: (req.user as any)._id,
+                user: req.body.id,
                 op_name: theName,
                 message: req.body.message,
                 date: new Date,
